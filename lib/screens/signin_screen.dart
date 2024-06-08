@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:proyek_ambw/reusable_widgets/reusable_widget.dart';
-import 'package:proyek_ambw/screens/marketplace_screen.dart';
+import 'package:proyek_ambw/screens/home_screen.dart';
 import 'package:proyek_ambw/screens/reset_password.dart';
 import 'package:proyek_ambw/screens/signup_screen.dart';
 import 'package:proyek_ambw/utils/color_utils.dart';
@@ -55,10 +55,8 @@ class _SignInScreenState extends State<SignInScreen> {
                           email: _emailTextController.text,
                           password: _passwordTextController.text)
                       .then((value) {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => MarketPlaceScreen()));
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (context) => HomeScreen()));
                   }).onError((error, stackTrace) {
                     print("Error ${error.toString()}");
                   });

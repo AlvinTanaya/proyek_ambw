@@ -1,9 +1,8 @@
-import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'marketplace_detail_screen.dart';
+import 'input_marketplace_screen.dart';
+import 'base_screen.dart';
 
 class MarketPlaceScreen extends StatefulWidget {
   const MarketPlaceScreen({Key? key}) : super(key: key);
@@ -14,104 +13,11 @@ class MarketPlaceScreen extends StatefulWidget {
 
 class _MarketPlaceScreenState extends State<MarketPlaceScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
-  File? _image;
-  String? itemName;
-  String? itemPrice; // Change to String
-  String selectedCategory = 'All'; // Define selectedCategory variable
-
-  void _showSellDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Sell Item'),
-          content: SingleChildScrollView(
-            child: Column(
-              children: [
-                TextField(
-                  decoration: InputDecoration(hintText: 'Item Name'),
-                  onChanged: (value) {
-                    itemName = value;
-                  },
-                ),
-                TextField(
-                  decoration: InputDecoration(hintText: 'Item Price'),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    itemPrice = value; // Change to String
-                  },
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    final picker = ImagePicker();
-                    final pickedFile =
-                        await picker.pickImage(source: ImageSource.gallery);
-                    setState(() {
-                      if (pickedFile != null) {
-                        _image = File(pickedFile.path);
-                      } else {
-                        print('No image selected.');
-                      }
-                    });
-                  },
-                  child: Text('Select Image'),
-                ),
-                if (_image != null) Image.file(_image!),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              child: Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('Post'),
-              onPressed: () {
-                if (itemName != null && itemPrice != null && _image != null) {
-                  _addItem(itemName!, itemPrice!);
-                  Navigator.of(context).pop();
-                } else {
-                  // Show error if fields are incomplete
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text('Please fill all fields and select an image'),
-                  ));
-                }
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _addItem(String name, String price) async {
-    if (_image != null) {
-      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
-      Reference storageReference =
-          _storage.ref().child('marketplace/$fileName');
-      SettableMetadata metadata = SettableMetadata(
-        contentType: 'image/jpeg', // Adjust based on the actual image type
-      );
-      UploadTask uploadTask = storageReference.putFile(_image!, metadata);
-      TaskSnapshot taskSnapshot = await uploadTask;
-      String imageUrl = await taskSnapshot.ref.getDownloadURL();
-
-      await _firestore.collection('marketplace').add({
-        'name': name,
-        'price': price, // Save as String
-        'image': imageUrl,
-        'category': selectedCategory,
-      });
-
-      setState(() {
-        _image = null;
-      });
-    }
-  }
+  String selectedCategory = 'All';
+  String selectedLocation = 'All';
+  String searchQuery = '';
+  bool isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
 
   void _showCategoriesDialog() {
     showDialog(
@@ -166,39 +72,127 @@ class _MarketPlaceScreenState extends State<MarketPlaceScreen> {
     );
   }
 
+  void _showLocationsDialog() async {
+    var locations = await _firestore.collection('marketplace').get().then(
+          (snapshot) => snapshot.docs
+              .map((doc) => doc['location'])
+              .toSet()
+              .toList(),
+        );
+
+    locations.insert(0, 'All'); // Add 'All' to the locations list
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Filter by Location'),
+          content: SingleChildScrollView(
+            child: Column(
+              children: locations
+                  .map((location) => ListTile(
+                        title: Text(location),
+                        onTap: () {
+                          setState(() {
+                            selectedLocation = location;
+                          });
+                          Navigator.of(context).pop();
+                        },
+                      ))
+                  .toList(),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _startSearch() {
+    ModalRoute.of(context)!
+        .addLocalHistoryEntry(LocalHistoryEntry(onRemove: _stopSearching));
+
+    setState(() {
+      isSearching = true;
+    });
+  }
+
+  void _stopSearching() {
+    _clearSearchQuery();
+
+    setState(() {
+      isSearching = false;
+    });
+  }
+
+  void _clearSearchQuery() {
+    setState(() {
+      _searchController.clear();
+      searchQuery = '';
+    });
+  }
+
+  Widget _buildTitle(BuildContext context) {
+    return Text('Marketplace');
+  }
+
+  Widget _buildSearchField() {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8.0),
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(25.0),
+      ),
+      child: TextField(
+        controller: _searchController,
+        autofocus: true,
+        decoration: InputDecoration(
+          hintText: 'Search...',
+          border: InputBorder.none,
+          hintStyle: TextStyle(color: Colors.black54),
+          icon: Icon(Icons.search, color: Colors.black54),
+        ),
+        style: TextStyle(color: Colors.black87, fontSize: 16.0),
+        onChanged: (query) => updateSearchQuery(query),
+      ),
+    );
+  }
+
+  List<Widget> _buildActions() {
+    if (isSearching) {
+      return <Widget>[
+        IconButton(
+          icon: const Icon(Icons.clear),
+          onPressed: () {
+            if (_searchController.text.isEmpty) {
+              Navigator.pop(context);
+              return;
+            }
+            _clearSearchQuery();
+          },
+        ),
+      ];
+    }
+
+    return <Widget>[
+      IconButton(
+        icon: const Icon(Icons.search),
+        onPressed: _startSearch,
+      ),
+    ];
+  }
+
+  void updateSearchQuery(String newQuery) {
+    setState(() {
+      searchQuery = newQuery;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Marketplace'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.account_circle),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: Icon(Icons.search),
-            onPressed: () {},
-          ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: Size.fromHeight(48.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              ElevatedButton.icon(
-                onPressed: _showSellDialog,
-                icon: Icon(Icons.edit),
-                label: Text('Sell'),
-              ),
-              ElevatedButton.icon(
-                onPressed: _showCategoriesDialog,
-                icon: Icon(Icons.list),
-                label: Text('Categories'),
-              ),
-            ],
-          ),
-        ),
+        title: isSearching ? _buildSearchField() : _buildTitle(context),
+        actions: _buildActions(),
       ),
       body: Column(
         children: [
@@ -207,11 +201,49 @@ class _MarketPlaceScreenState extends State<MarketPlaceScreen> {
             child: Row(
               children: [
                 Text('Today\'s picks',
-                    style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 Spacer(),
                 Icon(Icons.location_on),
-                Text('Surabaya, Indonesia'),
+                InkWell(
+                  onTap: _showLocationsDialog,
+                  child: Text(
+                    selectedLocation == 'All'
+                        ? 'Select Location'
+                        : selectedLocation,
+                    style: TextStyle(
+                      color: Colors.blue,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => InputMarketPlaceScreen()),
+                      );
+                    },
+                    icon: Icon(Icons.edit),
+                    label: Text('Sell'),
+                  ),
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _showCategoriesDialog,
+                    icon: Icon(Icons.list),
+                    label: Text('Categories'),
+                  ),
+                ),
               ],
             ),
           ),
@@ -224,9 +256,27 @@ class _MarketPlaceScreenState extends State<MarketPlaceScreen> {
                 }
 
                 var items = snapshot.data!.docs.where((item) {
-                  if (selectedCategory == 'All') return true;
-                  return item['category'] == selectedCategory;
+                  if (selectedCategory != 'All' &&
+                      item['category'] != selectedCategory) {
+                    return false;
+                  }
+                  if (selectedLocation != 'All' &&
+                      item['location'] != selectedLocation) {
+                    return false;
+                  }
+                  if (searchQuery.isNotEmpty &&
+                      !item['name']
+                          .toString()
+                          .toLowerCase()
+                          .contains(searchQuery.toLowerCase())) {
+                    return false;
+                  }
+                  return true;
                 }).toList();
+
+                if (items.isEmpty) {
+                  return Center(child: Text('No items available.'));
+                }
 
                 return GridView.builder(
                   padding: const EdgeInsets.all(8.0),
@@ -239,35 +289,46 @@ class _MarketPlaceScreenState extends State<MarketPlaceScreen> {
                   itemCount: items.length,
                   itemBuilder: (context, index) {
                     var item = items[index];
-                    return Card(
-                      child: Column(
-                        children: [
-                          Expanded(
-                            child: item['image'] != null
-                                ? Image.network(
-                                    item['image'],
-                                    fit: BoxFit.cover,
-                                  )
-                                : Container(), // Handle missing image
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item['name'] ??
-                                      'N/A', // Handle missing price
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                Text(
-                                  item['name'] ??
-                                      'No Name', // Handle missing name
-                                ),
-                              ],
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => MarketPlaceDetailScreen(
+                              item: item,
                             ),
                           ),
-                        ],
+                        );
+                      },
+                      child: Card(
+                        child: Column(
+                          children: [
+                            Expanded(
+                              child: item['images'] != null &&
+                                      item['images'].isNotEmpty
+                                  ? Image.network(
+                                      item['images'][0],
+                                      fit: BoxFit.cover,
+                                    )
+                                  : Container(), // Handle missing image
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item['price']?.toString() ?? 'N/A',
+                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                  Text(
+                                    item['name'] ?? 'No Name',
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },
@@ -277,6 +338,7 @@ class _MarketPlaceScreenState extends State<MarketPlaceScreen> {
           ),
         ],
       ),
+      bottomNavigationBar: BaseScreen(currentIndex: 3),
     );
   }
 }

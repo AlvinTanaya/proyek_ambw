@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:proyek_ambw/screens/signin_screen.dart';
 import 'package:flutter/material.dart';
+import 'signin_screen.dart';
+import 'base_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -19,12 +20,15 @@ class _HomeScreenState extends State<HomeScreen> {
           onPressed: () {
             FirebaseAuth.instance.signOut().then((value) {
               print("Signed Out");
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => SignInScreen()));
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => SignInScreen()),
+              );
             });
           },
         ),
       ),
+      bottomNavigationBar: BaseScreen(currentIndex: 0),
     );
   }
 }
