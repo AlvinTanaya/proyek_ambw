@@ -1,8 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'marketplace_detail_screen.dart';
-import 'input_marketplace_screen.dart';
+
 import 'base_screen.dart';
+import 'input_marketplace_screen.dart';
+import 'marketplace_detail_screen.dart';
 
 class MarketPlaceScreen extends StatefulWidget {
   const MarketPlaceScreen({Key? key}) : super(key: key);
@@ -74,10 +75,8 @@ class _MarketPlaceScreenState extends State<MarketPlaceScreen> {
 
   void _showLocationsDialog() async {
     var locations = await _firestore.collection('marketplace').get().then(
-          (snapshot) => snapshot.docs
-              .map((doc) => doc['location'])
-              .toSet()
-              .toList(),
+          (snapshot) =>
+              snapshot.docs.map((doc) => doc['location']).toSet().toList(),
         );
 
     locations.insert(0, 'All'); // Add 'All' to the locations list
@@ -201,7 +200,8 @@ class _MarketPlaceScreenState extends State<MarketPlaceScreen> {
             child: Row(
               children: [
                 Text('Today\'s picks',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 Spacer(),
                 Icon(Icons.location_on),
                 InkWell(
@@ -319,10 +319,15 @@ class _MarketPlaceScreenState extends State<MarketPlaceScreen> {
                                 children: [
                                   Text(
                                     item['price']?.toString() ?? 'N/A',
-                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.bold),
                                   ),
                                   Text(
                                     item['name'] ?? 'No Name',
+                                  ),
+                                  Text(
+                                    item['userName'] ?? 'Unknown User',
+                                    style: TextStyle(color: Colors.grey),
                                   ),
                                 ],
                               ),

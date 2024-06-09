@@ -1,17 +1,22 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-class InputMarketPlaceScreen extends StatefulWidget {
+class EditDetailMarketPlaceScreen extends StatefulWidget {
+  final DocumentSnapshot item;
+
+  EditDetailMarketPlaceScreen({required this.item});
+
   @override
-  _InputMarketPlaceScreenState createState() => _InputMarketPlaceScreenState();
+  _EditDetailMarketPlaceScreenState createState() =>
+      _EditDetailMarketPlaceScreenState();
 }
 
-class _InputMarketPlaceScreenState extends State<InputMarketPlaceScreen> {
+class _EditDetailMarketPlaceScreenState
+    extends State<EditDetailMarketPlaceScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
@@ -20,6 +25,16 @@ class _InputMarketPlaceScreenState extends State<InputMarketPlaceScreen> {
   List<XFile>? _imageFileList;
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController.text = widget.item['name'];
+    _priceController.text = widget.item['price'].toString();
+    _descriptionController.text = widget.item['description'];
+    _locationController.text = widget.item['location'];
+    _category = widget.item['category'];
+  }
 
   Future<void> _pickImages() async {
     final List<XFile>? pickedFiles = await _picker.pickMultiImage();
@@ -30,16 +45,14 @@ class _InputMarketPlaceScreenState extends State<InputMarketPlaceScreen> {
     }
   }
 
-  Future<void> _uploadData() async {
+  Future<void> _updateData() async {
     if (_nameController.text.isEmpty ||
         _priceController.text.isEmpty ||
         _descriptionController.text.isEmpty ||
         _locationController.text.isEmpty ||
-        _category == null ||
-        _imageFileList == null ||
-        _imageFileList!.isEmpty) {
+        _category == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please fill all fields and pick images')),
+        SnackBar(content: Text('Please fill all fields')),
       );
       return;
     }
@@ -49,33 +62,36 @@ class _InputMarketPlaceScreenState extends State<InputMarketPlaceScreen> {
     });
 
     try {
-      User? user = FirebaseAuth.instance.currentUser;
-
-      List<String> imageUrls = [];
-      for (XFile file in _imageFileList!) {
-        String fileName = DateTime.now().millisecondsSinceEpoch.toString();
-        Reference ref =
-            FirebaseStorage.instance.ref().child('marketplace').child(fileName);
-        await ref.putFile(File(file.path));
-        String imageUrl = await ref.getDownloadURL();
-        imageUrls.add(imageUrl);
+      List<String> imageUrls = widget.item['images'].cast<String>();
+      if (_imageFileList != null && _imageFileList!.isNotEmpty) {
+        for (XFile file in _imageFileList!) {
+          String fileName = DateTime.now().millisecondsSinceEpoch.toString();
+          Reference ref = FirebaseStorage.instance
+              .ref()
+              .child('marketplace')
+              .child(fileName);
+          await ref.putFile(File(file.path));
+          String imageUrl = await ref.getDownloadURL();
+          imageUrls.add(imageUrl);
+        }
       }
 
-      await FirebaseFirestore.instance.collection('marketplace').add({
+      await FirebaseFirestore.instance
+          .collection('marketplace')
+          .doc(widget.item.id)
+          .update({
         'name': _nameController.text,
         'price': int.parse(_priceController.text),
         'description': _descriptionController.text,
         'location': _locationController.text,
         'category': _category,
         'images': imageUrls,
-        'userId': user?.uid,
-        'userName': user?.displayName ?? 'Anonymous',
       });
 
       Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to upload data')),
+        SnackBar(content: Text('Failed to update data')),
       );
     } finally {
       setState(() {
@@ -88,12 +104,12 @@ class _InputMarketPlaceScreenState extends State<InputMarketPlaceScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('New Listing'),
+        title: Text('Edit Listing'),
         actions: [
           TextButton(
-            onPressed: _isLoading ? null : _uploadData,
+            onPressed: _isLoading ? null : _updateData,
             child: Text(
-              'Publish',
+              'Save',
               style: TextStyle(color: Colors.black),
             ),
           ),
@@ -110,7 +126,21 @@ class _InputMarketPlaceScreenState extends State<InputMarketPlaceScreen> {
                 color: Colors.grey[200],
                 child: Center(
                   child: _imageFileList == null
-                      ? Icon(Icons.add_a_photo)
+                      ? GridView.builder(
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 4.0,
+                            mainAxisSpacing: 4.0,
+                          ),
+                          itemCount: widget.item['images'].length,
+                          itemBuilder: (context, index) {
+                            return Image.network(
+                              widget.item['images'][index],
+                              fit: BoxFit.cover,
+                            );
+                          },
+                        )
                       : GridView.builder(
                           gridDelegate:
                               SliverGridDelegateWithFixedCrossAxisCount(
