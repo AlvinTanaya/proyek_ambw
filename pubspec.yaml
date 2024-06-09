@@ -1,0 +1,29 @@
+name: proyek_ambw
+description: "A new Flutter project."
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
+version: 1.0.0+1
+environment:
+  sdk: ">=3.2.6 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cloud_firestore: ^4.15.8
+  cupertino_icons: ^1.0.2
+  firebase_core: ^2.27.0
+  firebase_auth: ^4.17.8
+  firebase_storage: ^11.4.8
+  image_picker: ^0.8.7+3
+  carousel_slider: ^4.0.0
+  cached_network_image: ^3.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
