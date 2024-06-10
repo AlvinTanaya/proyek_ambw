@@ -3,7 +3,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
-import 'base_screen.dart'; // Make sure this import points to where your BaseScreen is defined
+import 'base_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 
 class AddPostScreen extends StatefulWidget {
   @override
@@ -35,6 +37,18 @@ class _AddPostScreenState extends State<AddPostScreen> {
       return;
     }
 
+
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text("No user logged in."),
+    ));
+    return;
+  }
+
+  DocumentSnapshot userData = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+  String username = userData.exists ? userData.get('username') : 'Anonymous';
+
     try {
       // Upload image to Firebase Storage
       String fileName = 'posts/${DateTime.now().millisecondsSinceEpoch.toString()}';
@@ -48,8 +62,10 @@ class _AddPostScreenState extends State<AddPostScreen> {
       // Add post details to Firestore
       await FirebaseFirestore.instance.collection('post').add({
         'imageUrl': imageUrl,
-        'caption': _captionController.text,
+        'caption': username,
+        'description': _captionController.text,
         'timestamp': DateTime.now(), // Optional: for ordering posts by time
+        'userId': user.uid, 
       });
 
       Navigator.pop(context); // Assuming success, pop back

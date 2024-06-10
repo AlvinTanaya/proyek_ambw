@@ -48,7 +48,10 @@ class HomeScreen extends StatelessWidget {
                 : 'default_image_url';
               String caption = postData?.containsKey('caption') ?? false
                 ? postData!['caption'] as String
-                : 'No Caption';
+                : 'ERROR NAME';
+              String description = postData?.containsKey('description') ?? false
+                ? postData!['description'] as String
+                : 'No Description';
 
               return Card(
                 margin: EdgeInsets.all(8),
@@ -59,7 +62,6 @@ class HomeScreen extends StatelessWidget {
                         backgroundImage: NetworkImage(imageUrl),
                       ),
                       title: Text(caption, style: TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text('Location'),
                       trailing: Icon(Icons.more_vert),
                     ),
                     Image.network(imageUrl, fit: BoxFit.cover),
@@ -94,6 +96,25 @@ class HomeScreen extends StatelessWidget {
                       child: Text(
                         'Liked by others',
                         style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      alignment: Alignment.topLeft,
+                      child: RichText(
+                        text: TextSpan(
+                          style: TextStyle(fontSize: 16, color: Colors.black), // Default style for all spans
+                          children: <TextSpan>[
+                            TextSpan(
+                              text: caption, // Your caption variable
+                              style: TextStyle(fontWeight: FontWeight.bold), // Bold text for the caption
+                            ),
+                            TextSpan(
+                              text: " " + description,
+                              style: TextStyle(fontWeight: FontWeight.normal), // Normal weight text
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     Container(
