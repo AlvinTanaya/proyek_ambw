@@ -192,6 +192,7 @@ class _MarketPlaceScreenState extends State<MarketPlaceScreen> {
       appBar: AppBar(
         title: isSearching ? _buildSearchField() : _buildTitle(context),
         actions: _buildActions(),
+        automaticallyImplyLeading: false,
       ),
       body: Column(
         children: [
