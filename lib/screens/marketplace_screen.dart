@@ -318,16 +318,12 @@ class _MarketPlaceScreenState extends State<MarketPlaceScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    item['price']?.toString() ?? 'N/A',
+                                    item['name'] ?? 'No Name',
                                     style:
                                         TextStyle(fontWeight: FontWeight.bold),
                                   ),
                                   Text(
-                                    item['name'] ?? 'No Name',
-                                  ),
-                                  Text(
-                                    item['userName'] ?? 'Unknown User',
-                                    style: TextStyle(color: Colors.grey),
+                                    item['price']?.toString() ?? 'N/A',
                                   ),
                                 ],
                               ),

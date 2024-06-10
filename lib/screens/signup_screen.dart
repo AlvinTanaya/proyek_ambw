@@ -53,10 +53,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
       await _firestore.collection('users').doc(user?.uid).set({
         'username': _userNameTextController.text,
         'fullName': _fullNameTextController.text,
+        'email': _emailTextController.text,
         'gender': _gender,
         'birthDate': _birthDate,
         'phoneNumber': _phoneNumberTextController.text,
         'biodata': '',
+        'profilePicture': '',
+        'countMarketplace': 0,
+        'countPost': 0,
+        'linked': [],
       });
 
       await user!.updateProfile(displayName: _userNameTextController.text);

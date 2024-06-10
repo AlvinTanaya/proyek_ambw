@@ -1,24 +1,75 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'base_screen.dart';
 import 'marketplace_detail_screen.dart';
 import 'profile_setting_screen.dart';
 
-class ProfileUserScreen extends StatelessWidget {
+class ProfileUserScreen extends StatefulWidget {
+  @override
+  _ProfileUserScreenState createState() => _ProfileUserScreenState();
+}
+
+class _ProfileUserScreenState extends State<ProfileUserScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
+
+  late User currentUser;
+  late Future<Map<String, dynamic>> profileData;
+  File? _imageFile;
+
+  @override
+  void initState() {
+    super.initState();
+    currentUser = _auth.currentUser!;
+    profileData = _fetchProfileData();
+  }
 
   Future<Map<String, dynamic>> _fetchProfileData() async {
-    User? currentUser = _auth.currentUser;
-    if (currentUser == null) {
-      throw Exception("No user logged in");
-    }
-    String userId = currentUser.uid;
     DocumentSnapshot userProfileSnapshot =
-        await _firestore.collection('users').doc(userId).get();
+        await _firestore.collection('users').doc(currentUser.uid).get();
     return userProfileSnapshot.data() as Map<String, dynamic>;
+  }
+
+  Future<void> _pickImage() async {
+    final pickedFile =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
+      });
+      await _uploadProfilePicture();
+    }
+  }
+
+  Future<void> _uploadProfilePicture() async {
+    if (_imageFile == null) return;
+
+    try {
+      String filePath = 'profile_pictures/${currentUser.uid}.png';
+      await _storage.ref().child(filePath).putFile(_imageFile!);
+
+      String downloadUrl =
+          await _storage.ref().child(filePath).getDownloadURL();
+
+      await _firestore
+          .collection('users')
+          .doc(currentUser.uid)
+          .update({'profilePicture': downloadUrl});
+
+      setState(() {
+        profileData = _fetchProfileData();
+      });
+    } catch (e) {
+      print('Error uploading profile picture: $e');
+    }
   }
 
   Future<List<DocumentSnapshot>> _fetchUserMarketplaceItems(
@@ -30,10 +81,14 @@ class ProfileUserScreen extends StatelessWidget {
     return querySnapshot.docs;
   }
 
+  int _countLinked(List<dynamic> linked) {
+    return linked.length;
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<Map<String, dynamic>>(
-      future: _fetchProfileData(),
+      future: profileData,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Scaffold(
@@ -52,7 +107,7 @@ class ProfileUserScreen extends StatelessWidget {
         }
 
         var profileData = snapshot.data!;
-        String userId = _auth.currentUser!.uid;
+        String userId = currentUser.uid;
 
         return Scaffold(
           appBar: AppBar(
@@ -79,10 +134,35 @@ class ProfileUserScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
                   children: [
-                    CircleAvatar(
-                      radius: 40,
-                      backgroundImage: AssetImage('assets/images/logo1.png'),
-                      backgroundColor: Colors.grey.shade200,
+                    Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 40,
+                          backgroundColor: Colors.grey.shade200,
+                          backgroundImage:
+                              profileData['profilePicture'] != null &&
+                                      profileData['profilePicture'].isNotEmpty
+                                  ? NetworkImage(profileData['profilePicture'])
+                                  : null,
+                          child: profileData['profilePicture'] == null ||
+                                  profileData['profilePicture'].isEmpty
+                              ? Icon(Icons.person, color: Colors.grey)
+                              : null,
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: GestureDetector(
+                            onTap: _pickImage,
+                            child: CircleAvatar(
+                              radius: 15,
+                              backgroundColor: Colors.blue,
+                              child: Icon(Icons.add,
+                                  color: Colors.white, size: 18),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     SizedBox(width: 16),
                     Column(
@@ -92,8 +172,14 @@ class ProfileUserScreen extends StatelessWidget {
                             style: TextStyle(
                                 fontSize: 18, fontWeight: FontWeight.bold)),
                         SizedBox(height: 4),
+                        Text(profileData['bio'] ?? 'No bio available'),
+                        SizedBox(height: 8),
                         Text(
-                            'Posts: ${profileData['postCount']}'), // Ensure this field exists in Firestore
+                            'Posts: ${profileData['countPost']}'), // Ensure this field exists in Firestore
+                        Text(
+                            'Items Sold: ${profileData['countMarketplace']}'), // Ensure this field exists in Firestore
+                        Text(
+                            'Linked: ${_countLinked(profileData['linked'] ?? [])}'), // Ensure this field exists in Firestore
                       ],
                     ),
                   ],

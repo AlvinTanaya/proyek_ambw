@@ -14,9 +14,11 @@ class InputMarketPlaceScreen extends StatefulWidget {
 class _InputMarketPlaceScreenState extends State<InputMarketPlaceScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   String? _category;
+  late User currentUser;
   List<XFile>? _imageFileList;
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
@@ -28,6 +30,11 @@ class _InputMarketPlaceScreenState extends State<InputMarketPlaceScreen> {
         _imageFileList = pickedFiles;
       });
     }
+  }
+
+  void initState() {
+    super.initState();
+    currentUser = _auth.currentUser!;
   }
 
   Future<void> _uploadData() async {
@@ -60,6 +67,14 @@ class _InputMarketPlaceScreenState extends State<InputMarketPlaceScreen> {
         String imageUrl = await ref.getDownloadURL();
         imageUrls.add(imageUrl);
       }
+
+      // Increment countMarketplace
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .update({
+        'countMarketplace': FieldValue.increment(1),
+      });
 
       await FirebaseFirestore.instance.collection('marketplace').add({
         'name': _nameController.text,

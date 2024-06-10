@@ -3,29 +3,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'edit_detail_marketplace.dart';
-
 class MarketPlaceDetailScreen extends StatelessWidget {
   final DocumentSnapshot item;
 
   MarketPlaceDetailScreen({required this.item});
-
-  void _deleteItem(BuildContext context) async {
-    await FirebaseFirestore.instance
-        .collection('marketplace')
-        .doc(item.id)
-        .delete();
-    Navigator.pop(context);
-  }
-
-  void _editItem(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EditDetailMarketPlaceScreen(item: item),
-      ),
-    );
-  }
 
   void _contactSeller(BuildContext context) async {
     String userId = item['userId'];
@@ -80,16 +61,6 @@ class MarketPlaceDetailScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(item['name']),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.edit),
-            onPressed: () => _editItem(context),
-          ),
-          IconButton(
-            icon: Icon(Icons.delete),
-            onPressed: () => _deleteItem(context),
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16.0),
