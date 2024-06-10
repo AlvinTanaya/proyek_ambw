@@ -1,6 +1,6 @@
 name: proyek_ambw
 description: "A new Flutter project."
-publish_to: "none" # Remove this line if you wish to publish to pub.dev
+publish_to: "none"
 version: 1.0.0+1
 environment:
   sdk: ">=3.2.6 <4.0.0"
@@ -16,6 +16,9 @@ dependencies:
   image_picker: ^0.8.7+3
   carousel_slider: ^4.0.0
   url_launcher: ^6.0.20
+  video_player: ^2.6.1
+  file_picker: ^5.2.5
+  permission_handler: ^10.3.0
 
 dev_dependencies:
   flutter_test:
