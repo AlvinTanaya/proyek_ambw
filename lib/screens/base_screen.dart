@@ -22,7 +22,7 @@ class BaseScreen extends StatelessWidget {
           nextPage = OtherUserScreen();
           break;
         case 2:
-          nextPage = AddPostScreen();
+          nextPage = ChooseUploadTypeScreen();
           break;
         case 3:
           nextPage = MarketPlaceScreen();
