@@ -10,8 +10,10 @@ import 'package:image_picker/image_picker.dart';
 import 'home_screen.dart';
 
 class AddStoryImageScreen extends StatefulWidget {
+  
   @override
   _AddStoryImageScreenState createState() => _AddStoryImageScreenState();
+
 }
 
 class _AddStoryImageScreenState extends State<AddStoryImageScreen> {
@@ -85,6 +87,7 @@ class _AddStoryImageScreenState extends State<AddStoryImageScreen> {
         'caption': username,
         'timestamp': DateTime.now(),
         'userId': user.uid,
+        'videoUrl': null,
       });
 
       Navigator.pushReplacement(

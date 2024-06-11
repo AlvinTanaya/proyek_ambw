@@ -34,7 +34,7 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
   Future<Map<String, dynamic>> _fetchProfileData() async {
     DocumentSnapshot userProfileSnapshot =
         await _firestore.collection('users').doc(currentUser.uid).get();
-    return userProfileSnapshot.data() as Map<String, dynamic>;
+    return userProfileSnapshot.data() as Map<String, dynamic>? ?? {};
   }
 
   Future<void> _pickImage() async {
@@ -113,7 +113,7 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
           appBar: AppBar(
             backgroundColor: Colors.white,
             automaticallyImplyLeading: false, // Remove the back arrow
-            title: Text(profileData['username'],
+            title: Text(profileData['username'] ?? 'Unknown',
                 style: TextStyle(color: Colors.black)),
             actions: [
               IconButton(
@@ -141,11 +141,14 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
                           backgroundColor: Colors.grey.shade200,
                           backgroundImage:
                               profileData['profilePicture'] != null &&
-                                      profileData['profilePicture'].isNotEmpty
-                                  ? NetworkImage(profileData['profilePicture'])
+                                      (profileData['profilePicture'] as String)
+                                          .isNotEmpty
+                                  ? NetworkImage(
+                                      profileData['profilePicture'] as String)
                                   : null,
                           child: profileData['profilePicture'] == null ||
-                                  profileData['profilePicture'].isEmpty
+                                  (profileData['profilePicture'] as String)
+                                      .isEmpty
                               ? Icon(Icons.person, color: Colors.grey)
                               : null,
                         ),
@@ -168,16 +171,16 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(profileData['fullName'],
+                        Text(profileData['fullName'] ?? 'No Name',
                             style: TextStyle(
                                 fontSize: 18, fontWeight: FontWeight.bold)),
                         SizedBox(height: 4),
-                        Text(profileData['bio'] ?? 'No bio available'),
+                        Text(profileData['biodata'] ?? 'No bio available'),
                         SizedBox(height: 8),
                         Text(
-                            'Posts: ${profileData['countPost']}'), // Ensure this field exists in Firestore
+                            'Posts: ${profileData['countPost'] ?? 0}'), // Ensure this field exists in Firestore
                         Text(
-                            'Items Sold: ${profileData['countMarketplace']}'), // Ensure this field exists in Firestore
+                            'Items Sold: ${profileData['countMarketplace'] ?? 0}'), // Ensure this field exists in Firestore
                         Text(
                             'Linked: ${_countLinked(profileData['linked'] ?? [])}'), // Ensure this field exists in Firestore
                       ],

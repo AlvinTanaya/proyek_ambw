@@ -1,64 +1,154 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
+import 'package:proyek_ambw/reusable_widgets/video_widget.dart';
 
 import 'addStory_screen.dart';
 import 'base_screen.dart';
+import 'other_user_profile_screen.dart'; // Import the OtherUserProfileScreen
+import 'story_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
-  void _showFullStory(BuildContext context, String imageUrl, String username,
-      String profilePicture) {
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => Scaffold(
-        body: GestureDetector(
-          onTap: () => Navigator.of(context).pop(),
-          child: Stack(
-            children: [
-              Center(
-                child: Container(
-                  width: double.infinity, // Use the full width of the screen
-                  height: MediaQuery.of(context).size.width *
-                      (16 /
-                          9), // Set height based on the screen width to maintain a 9:16 ratio
-                  child: Image.network(
-                    imageUrl,
-                    fit: BoxFit
-                        .cover, // Ensures the image covers the container fully, cropping as necessary
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 40,
-                left: 10,
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircleAvatar(
-                        backgroundImage: NetworkImage(profilePicture),
-                        radius: 15,
-                      ),
-                      SizedBox(width: 8),
-                      Text(username,
-                          style: TextStyle(color: Colors.black, fontSize: 20)),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+  @override
+  Widget build(BuildContext context) {
+    final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Feed'),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        actions: <Widget>[
+          IconButton(
+            icon: Icon(Icons.camera_alt, color: Colors.black),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => ChooseStoryUploadTypeScreen()),
+              );
+            },
           ),
-        ),
+        ],
       ),
-    ));
+      body: Column(
+        children: [
+          Container(
+            height: 90,
+            child: StreamBuilder<DocumentSnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(currentUserId)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
+
+                if (!snapshot.hasData || !snapshot.data!.exists) {
+                  return Center(child: Text('No linked users found'));
+                }
+
+                List<dynamic> linkedUserIds = snapshot.data!['linked'] ?? [];
+                linkedUserIds.add(
+                    currentUserId); // Add the current user's ID to show their own stories
+
+                if (linkedUserIds.isEmpty) {
+                  return Center(child: Text('No linked users found'));
+                }
+
+                return StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('story')
+                      .where('userId', whereIn: linkedUserIds)
+                      .snapshots(),
+                  builder: (context, storySnapshot) {
+                    if (storySnapshot.hasError) {
+                      return Center(
+                          child: Text('Error: ${storySnapshot.error}'));
+                    }
+
+                    if (storySnapshot.connectionState ==
+                        ConnectionState.waiting) {
+                      return Center(child: CircularProgressIndicator());
+                    }
+
+                    if (!storySnapshot.hasData ||
+                        storySnapshot.data!.docs.isEmpty) {
+                      return Center(child: Text('No stories found'));
+                    }
+
+                    var stories = _groupStoriesByUser(storySnapshot.data!.docs);
+
+                    return ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: stories.keys.map((userId) {
+                        return _buildStoryThumbnail(
+                            userId, stories[userId]!, context, stories);
+                      }).toList(),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('post').snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return Center(child: Text('No posts found'));
+                }
+
+                return ListView.builder(
+                  itemCount: snapshot.data!.docs.length,
+                  itemBuilder: (context, index) {
+                    DocumentSnapshot post = snapshot.data!.docs[index];
+                    return _buildPostCard(post, context);
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: BaseScreen(currentIndex: 0),
+    );
   }
 
-  Widget _buildStoryThumbnail(DocumentSnapshot storyDoc, BuildContext context) {
-    String imageUrl = storyDoc['imageUrl'] as String;
-    String userId = storyDoc['userId'] as String;
+  Map<String, List<DocumentSnapshot>> _groupStoriesByUser(
+      List<DocumentSnapshot> docs) {
+    Map<String, List<DocumentSnapshot>> groupedStories = {};
 
+    for (var doc in docs) {
+      String userId = doc['userId'] as String;
+      if (groupedStories.containsKey(userId)) {
+        groupedStories[userId]!.add(doc);
+      } else {
+        groupedStories[userId] = [doc];
+      }
+    }
+
+    return groupedStories;
+  }
+
+  Widget _buildStoryThumbnail(String userId, List<DocumentSnapshot> stories,
+      BuildContext context, Map<String, List<DocumentSnapshot>> allStories) {
     return FutureBuilder<DocumentSnapshot>(
       future: FirebaseFirestore.instance.collection('users').doc(userId).get(),
       builder: (context, snapshot) {
@@ -67,14 +157,14 @@ class HomeScreen extends StatelessWidget {
         }
 
         var userDoc = snapshot.data!;
-        String username = userDoc['username'] as String;
-        String profilePicture = userDoc['profilePicture'] as String;
+        String username = userDoc['username'] ?? 'Unknown';
+        String profilePicture = userDoc['profilePicture'] ?? '';
 
         return Column(
           children: [
             InkWell(
-              onTap: () =>
-                  _showFullStory(context, imageUrl, username, profilePicture),
+              onTap: () => _showFullStory(
+                  context, stories, username, profilePicture, allStories),
               child: Container(
                 margin: EdgeInsets.symmetric(horizontal: 8),
                 width: 70,
@@ -101,88 +191,27 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Feed'),
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        elevation: 0,
-        actions: <Widget>[
-          IconButton(
-            icon: Icon(Icons.camera_alt, color: Colors.black),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => ChooseStoryUploadTypeScreen()),
-              );
-            },
-          ),
-        ],
+  void _showFullStory(
+      BuildContext context,
+      List<DocumentSnapshot> stories,
+      String username,
+      String profilePicture,
+      Map<String, List<DocumentSnapshot>> allStories) {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => StoryScreen(
+          stories: stories,
+          username: username,
+          profilePicture: profilePicture,
+          allUsersStories: allStories),
+    ));
+  }
+
+  void _navigateToUserProfile(BuildContext context, String userId) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => OtherUserProfileScreen(userId: userId),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('post').snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Text('Error: ${snapshot.error}');
-          }
-
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(child: Text('No posts found'));
-          }
-
-          return Column(
-            children: [
-              Container(
-                height: 90,
-                child: StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('story')
-                      .snapshots(),
-                  builder: (context, storySnapshot) {
-                    if (storySnapshot.hasError) {
-                      return Text('Error: ${storySnapshot.error}');
-                    }
-
-                    if (storySnapshot.connectionState ==
-                        ConnectionState.waiting) {
-                      return Center(child: CircularProgressIndicator());
-                    }
-
-                    if (!storySnapshot.hasData ||
-                        storySnapshot.data!.docs.isEmpty) {
-                      return Center(child: Text('No stories found'));
-                    }
-
-                    return ListView(
-                      scrollDirection: Axis.horizontal,
-                      children: storySnapshot.data!.docs.map((doc) {
-                        return _buildStoryThumbnail(doc, context);
-                      }).toList(),
-                    );
-                  },
-                ),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: snapshot.data!.docs.length,
-                  itemBuilder: (context, index) {
-                    DocumentSnapshot post = snapshot.data!.docs[index];
-                    return _buildPostCard(post, context);
-                  },
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-      bottomNavigationBar: BaseScreen(currentIndex: 0),
     );
   }
 
@@ -204,8 +233,7 @@ class HomeScreen extends StatelessWidget {
 
         var userDoc = snapshot.data!;
         String profilePicture = userDoc['profilePicture'] as String;
-        String username =
-            userDoc['username'] as String; // Assuming 'username' field exists
+        String username = userDoc['username'] as String;
 
         return Card(
           margin: EdgeInsets.all(8),
@@ -215,10 +243,11 @@ class HomeScreen extends StatelessWidget {
                 leading: CircleAvatar(
                   backgroundImage: NetworkImage(profilePicture),
                 ),
-                title: Text(username,
-                    style: TextStyle(
-                        fontWeight: FontWeight
-                            .bold)), // Changed from caption to username
+                title: GestureDetector(
+                  onTap: () => _navigateToUserProfile(context, userId),
+                  child: Text(username,
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
                 trailing: Icon(Icons.more_vert),
               ),
               if (post['imageUrl'] != null)
@@ -280,42 +309,5 @@ class HomeScreen extends StatelessWidget {
         );
       },
     );
-  }
-}
-
-class VideoPlayerWidget extends StatefulWidget {
-  final String url;
-
-  VideoPlayerWidget({required this.url});
-
-  @override
-  _VideoPlayerWidgetState createState() => _VideoPlayerWidgetState();
-}
-
-class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
-  late VideoPlayerController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = VideoPlayerController.network(widget.url)
-      ..initialize().then((_) {
-        setState(() {});
-      })
-      ..setLooping(true)
-      ..play();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return _controller.value.isInitialized
-        ? VideoPlayer(_controller)
-        : Center(child: CircularProgressIndicator());
   }
 }

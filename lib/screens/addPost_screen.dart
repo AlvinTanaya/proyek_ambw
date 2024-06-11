@@ -186,7 +186,6 @@ class _AddPostImageScreenState extends State<AddPostImageScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: BaseScreen(currentIndex: 2),
     );
   }
 }
@@ -332,7 +331,6 @@ class _AddPostVideoScreenState extends State<AddPostVideoScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: BaseScreen(currentIndex: 2),
     );
   }
 }

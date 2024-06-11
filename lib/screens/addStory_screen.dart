@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'add_story_image_screen.dart';
 import 'add_story_video_screen.dart';
+import 'base_screen.dart';
 
 class ChooseStoryUploadTypeScreen extends StatelessWidget {
   @override
@@ -37,6 +38,7 @@ class ChooseStoryUploadTypeScreen extends StatelessWidget {
           ],
         ),
       ),
+
     );
   }
 }

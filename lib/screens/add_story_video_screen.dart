@@ -82,6 +82,7 @@ class _AddStoryVideoScreenState extends State<AddStoryVideoScreen> {
         'caption': username,
         'timestamp': DateTime.now(),
         'userId': user.uid,
+        'imageUrl': null,
       });
 
       Navigator.pushReplacement(
