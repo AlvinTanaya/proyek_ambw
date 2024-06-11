@@ -6,51 +6,48 @@ import 'package:image_cropper/image_cropper.dart';
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'home_screen.dart';
-import 'base_screen.dart'; // Ensure this import is correctly pointing to your 'BaseScreen' widget.
 
-class AddPostScreen extends StatefulWidget {
+class AddStoryScreen extends StatefulWidget {
   @override
-  _AddPostScreenState createState() => _AddPostScreenState();
+  _AddStoryScreenState createState() => _AddStoryScreenState();
 }
 
-class _AddPostScreenState extends State<AddPostScreen> {
-  final TextEditingController _captionController = TextEditingController();
+class _AddStoryScreenState extends State<AddStoryScreen> {
   File? _image;
   final picker = ImagePicker();
 
-  Future getImage() async {
-    final pickedFile = await picker.getImage(source: ImageSource.gallery);
+Future getImage() async {
+  final pickedFile = await picker.getImage(source: ImageSource.gallery);
 
-    if (pickedFile != null) {
-      // Instantiate ImageCropper and start the cropping
-      File? croppedFile = await ImageCropper().cropImage(
-        sourcePath: pickedFile.path,
-        aspectRatioPresets: [CropAspectRatioPreset.square],
-        androidUiSettings: AndroidUiSettings(
-          toolbarTitle: 'Crop your image',
-          toolbarColor: Colors.deepPurple,
-          toolbarWidgetColor: Colors.white,
-          initAspectRatio: CropAspectRatioPreset.original,
-          lockAspectRatio: true,
-        ),
-        iosUiSettings: IOSUiSettings(
-          minimumAspectRatio: 1.0,
-          aspectRatioLockEnabled: true,
-        ),
-      );
+  if (pickedFile != null) {
+    File? croppedFile = await ImageCropper().cropImage(
+      sourcePath: pickedFile.path,
+      aspectRatio: CropAspectRatio(ratioX: 9, ratioY: 16), // Directly set the custom aspect ratio
+      androidUiSettings: AndroidUiSettings(
+        toolbarTitle: 'Crop your image',
+        toolbarColor: Colors.deepPurple,
+        toolbarWidgetColor: Colors.white,
+        lockAspectRatio: true, // Ensure the aspect ratio is locked
+      ),
+      iosUiSettings: IOSUiSettings(
+        minimumAspectRatio: 9 / 16.0, // Explicitly setting the ratio for iOS
+        aspectRatioLockEnabled: true,
+      ),
+    );
 
-      setState(() {
-        _image = croppedFile;
-      });
-    } else {
-      print('No image picked.');
-    }
+    setState(() {
+      _image = croppedFile;
+    });
+  } else {
+    print('No image picked.');
   }
+}
 
-  Future uploadPost(BuildContext context) async {
-    if (_image == null || _captionController.text.isEmpty) {
+
+  Future uploadStory(BuildContext context) async {
+    if (_image == null ) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text("Please provide an image and a caption."),
+        content: Text("Please provide an image."),
       ));
       return;
     }
@@ -68,7 +65,7 @@ class _AddPostScreenState extends State<AddPostScreen> {
       String username = userData['username'] ?? 'Anonymous';
       String profilePicture = userData['profilePicture'] ?? 'default.png';
 
-      String fileName = 'posts/${DateTime.now().millisecondsSinceEpoch.toString()}';
+      String fileName = 'story/${DateTime.now().millisecondsSinceEpoch.toString()}';
       firebase_storage.UploadTask task = firebase_storage.FirebaseStorage.instance
           .ref(fileName)
           .putFile(_image!);
@@ -76,11 +73,10 @@ class _AddPostScreenState extends State<AddPostScreen> {
       final snapshot = await task.whenComplete(() {});
       final imageUrl = await snapshot.ref.getDownloadURL();
 
-      await FirebaseFirestore.instance.collection('post').add({
+      await FirebaseFirestore.instance.collection('story').add({
         'imageUrl': imageUrl,
         'userProfile': profilePicture,
         'caption': username,
-        'description': _captionController.text,
         'timestamp': DateTime.now(),
         'userId': user.uid,
       });
@@ -91,7 +87,7 @@ class _AddPostScreenState extends State<AddPostScreen> {
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text("Failed to upload post: $e"),
+        content: Text("Failed to upload story: $e"),
       ));
     }
   }
@@ -100,11 +96,11 @@ class _AddPostScreenState extends State<AddPostScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Add a Post"),
+        title: Text("Add a Story"),
         actions: [
           IconButton(
             icon: Icon(Icons.send),
-            onPressed: () => uploadPost(context),
+            onPressed: () => uploadStory(context),
           )
         ],
       ),
@@ -112,15 +108,6 @@ class _AddPostScreenState extends State<AddPostScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: TextField(
-                controller: _captionController,
-                decoration: InputDecoration(
-                  labelText: 'Caption',
-                ),
-              ),
-            ),
             SizedBox(height: 10),
             Center(
               child: _image == null ? Text('No image selected.') : Image.file(_image!, height: 300),
@@ -135,7 +122,6 @@ class _AddPostScreenState extends State<AddPostScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: BaseScreen(currentIndex: 2), // Ensure this widget is defined correctly
     );
   }
 }
