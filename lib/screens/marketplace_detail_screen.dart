@@ -57,21 +57,30 @@ class MarketPlaceDetailScreen extends StatelessWidget {
   }
 
   void _deleteItem(BuildContext context) async {
-    await FirebaseFirestore.instance
-        .collection('marketplace')
-        .doc(item.id)
-        .delete();
-
-    Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Item deleted successfully')),
-    );
+    try {
+      await FirebaseFirestore.instance
+          .collection('marketplace')
+          .doc(item.id)
+          .delete();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Item deleted successfully')),
+      );
+      Navigator.pop(context); // Go back to the previous screen
+    } catch (e) {
+      print('Error deleting item: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to delete item')),
+      );
+    }
   }
 
   void _editItem(BuildContext context) {
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => EditItemScreen(item: item),
-    ));
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditMarketPlaceItemScreen(item: item),
+      ),
+    );
   }
 
   @override
@@ -83,16 +92,14 @@ class MarketPlaceDetailScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(item['name']),
         actions: [
-          if (canEditDelete && item['userId'] == currentUserId) ...[
-            IconButton(
-              icon: Icon(Icons.edit),
-              onPressed: () => _editItem(context),
-            ),
-            IconButton(
-              icon: Icon(Icons.delete),
-              onPressed: () => _deleteItem(context),
-            ),
-          ]
+          IconButton(
+            icon: Icon(Icons.edit),
+            onPressed: () => _editItem(context),
+          ),
+          IconButton(
+            icon: Icon(Icons.delete),
+            onPressed: () => _deleteItem(context),
+          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -233,16 +240,18 @@ class MarketPlaceDetailScreen extends StatelessWidget {
   }
 }
 
-class EditItemScreen extends StatefulWidget {
+class EditMarketPlaceItemScreen extends StatefulWidget {
   final DocumentSnapshot item;
 
-  EditItemScreen({required this.item});
+  EditMarketPlaceItemScreen({required this.item});
 
   @override
-  _EditItemScreenState createState() => _EditItemScreenState();
+  _EditMarketPlaceItemScreenState createState() =>
+      _EditMarketPlaceItemScreenState();
 }
 
-class _EditItemScreenState extends State<EditItemScreen> {
+class _EditMarketPlaceItemScreenState extends State<EditMarketPlaceItemScreen> {
+  final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _priceController;
   late TextEditingController _categoryController;
@@ -261,22 +270,40 @@ class _EditItemScreenState extends State<EditItemScreen> {
         TextEditingController(text: widget.item['description']);
   }
 
-  void _updateItem() async {
-    await FirebaseFirestore.instance
-        .collection('marketplace')
-        .doc(widget.item.id)
-        .update({
-      'name': _nameController.text,
-      'price': double.parse(_priceController.text),
-      'category': _categoryController.text,
-      'location': _locationController.text,
-      'description': _descriptionController.text,
-    });
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _priceController.dispose();
+    _categoryController.dispose();
+    _locationController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
 
-    Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Item updated successfully')),
-    );
+  void _saveItem() async {
+    if (_formKey.currentState!.validate()) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('marketplace')
+            .doc(widget.item.id)
+            .update({
+          'name': _nameController.text,
+          'price': double.tryParse(_priceController.text) ?? 0.0,
+          'category': _categoryController.text,
+          'location': _locationController.text,
+          'description': _descriptionController.text,
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Item updated successfully')),
+        );
+        Navigator.pop(context); // Go back to the previous screen
+      } catch (e) {
+        print('Error updating item: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update item')),
+        );
+      }
+    }
   }
 
   @override
@@ -287,36 +314,72 @@ class _EditItemScreenState extends State<EditItemScreen> {
         actions: [
           IconButton(
             icon: Icon(Icons.save),
-            onPressed: _updateItem,
+            onPressed: _saveItem,
           ),
         ],
       ),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _nameController,
-              decoration: InputDecoration(labelText: 'Name'),
-            ),
-            TextField(
-              controller: _priceController,
-              decoration: InputDecoration(labelText: 'Price'),
-              keyboardType: TextInputType.number,
-            ),
-            TextField(
-              controller: _categoryController,
-              decoration: InputDecoration(labelText: 'Category'),
-            ),
-            TextField(
-              controller: _locationController,
-              decoration: InputDecoration(labelText: 'Location'),
-            ),
-            TextField(
-              controller: _descriptionController,
-              decoration: InputDecoration(labelText: 'Description'),
-            ),
-          ],
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            children: <Widget>[
+              TextFormField(
+                controller: _nameController,
+                decoration: InputDecoration(labelText: 'Name'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter the name';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: _priceController,
+                decoration: InputDecoration(labelText: 'Price'),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter the price';
+                  }
+                  if (double.tryParse(value) == null) {
+                    return 'Please enter a valid number';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: _categoryController,
+                decoration: InputDecoration(labelText: 'Category'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter the category';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: _locationController,
+                decoration: InputDecoration(labelText: 'Location'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter the location';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: _descriptionController,
+                decoration: InputDecoration(labelText: 'Description'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter the description';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
