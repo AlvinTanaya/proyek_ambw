@@ -34,7 +34,7 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
   Future<Map<String, dynamic>> _fetchProfileData() async {
     DocumentSnapshot userProfileSnapshot =
         await _firestore.collection('users').doc(currentUser.uid).get();
-    return userProfileSnapshot.data() as Map<String, dynamic>? ?? {};
+    return userProfileSnapshot.data() as Map<String, dynamic>;
   }
 
   Future<void> _pickImage() async {
@@ -81,6 +81,31 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
     return querySnapshot.docs;
   }
 
+  Future<List<DocumentSnapshot>> _fetchUserPosts(String userId) async {
+    QuerySnapshot querySnapshot = await _firestore
+        .collection('post')
+        .where('userId', isEqualTo: userId)
+        .get();
+    return querySnapshot.docs;
+  }
+
+  Future<int> _fetchUserPostsImageCount(String userId) async {
+    QuerySnapshot querySnapshot = await _firestore
+        .collection('post')
+        .where('userId', isEqualTo: userId)
+        .get();
+
+    int imageCount = 0;
+    querySnapshot.docs.forEach((doc) {
+      Map<String, dynamic> postData = doc.data() as Map<String, dynamic>;
+      if (postData['imageUrl'] != null && postData['imageUrl'].isNotEmpty) {
+        imageCount++;
+      }
+    });
+
+    return imageCount;
+  }
+
   int _countLinked(List<dynamic> linked) {
     return linked.length;
   }
@@ -113,7 +138,7 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
           appBar: AppBar(
             backgroundColor: Colors.white,
             automaticallyImplyLeading: false, // Remove the back arrow
-            title: Text(profileData['username'] ?? 'Unknown',
+            title: Text(profileData['username'],
                 style: TextStyle(color: Colors.black)),
             actions: [
               IconButton(
@@ -129,64 +154,96 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
             ],
           ),
           body: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  children: [
-                    Stack(
-                      children: [
-                        CircleAvatar(
-                          radius: 40,
-                          backgroundColor: Colors.grey.shade200,
-                          backgroundImage:
-                              profileData['profilePicture'] != null &&
-                                      (profileData['profilePicture'] as String)
-                                          .isNotEmpty
-                                  ? NetworkImage(
-                                      profileData['profilePicture'] as String)
-                                  : null,
-                          child: profileData['profilePicture'] == null ||
-                                  (profileData['profilePicture'] as String)
-                                      .isEmpty
-                              ? Icon(Icons.person, color: Colors.grey)
-                              : null,
+              SizedBox(height: 20),
+              Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 50,
+                    backgroundColor: Colors.grey.shade200,
+                    backgroundImage: profileData['profilePicture'] != null &&
+                            profileData['profilePicture'].isNotEmpty
+                        ? NetworkImage(profileData['profilePicture'])
+                        : null,
+                    child: profileData['profilePicture'] == null ||
+                            profileData['profilePicture'].isEmpty
+                        ? Icon(Icons.person, color: Colors.grey, size: 80)
+                        : null,
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: GestureDetector(
+                      onTap: _pickImage,
+                      child: CircleAvatar(
+                        radius: 12,
+                        backgroundColor: Colors.blue,
+                        child: Icon(
+                          Icons.add,
+                          color: Colors.white,
+                          size: 17,
                         ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: GestureDetector(
-                            onTap: _pickImage,
-                            child: CircleAvatar(
-                              radius: 15,
-                              backgroundColor: Colors.blue,
-                              child: Icon(Icons.add,
-                                  color: Colors.white, size: 18),
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                    SizedBox(width: 16),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(profileData['fullName'] ?? 'No Name',
-                            style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold)),
-                        SizedBox(height: 4),
-                        Text(profileData['biodata'] ?? 'No bio available'),
-                        SizedBox(height: 8),
-                        Text(
-                            'Posts: ${profileData['countPost'] ?? 0}'), // Ensure this field exists in Firestore
-                        Text(
-                            'Items Sold: ${profileData['countMarketplace'] ?? 0}'), // Ensure this field exists in Firestore
-                        Text(
-                            'Linked: ${_countLinked(profileData['linked'] ?? [])}'), // Ensure this field exists in Firestore
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 20),
+              Text(
+                profileData['fullName'],
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 4),
+              Text(
+                profileData['biodata'] ?? 'No bio available',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Column(
+                    children: [
+                      Text(
+                        profileData['countPost'].toString(),
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'posts',
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    children: [
+                      Text(
+                        profileData['countMarketplace'].toString(),
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'items',
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    children: [
+                      Text(
+                        _countLinked(profileData['linked'] ?? []).toString(),
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'linked',
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ],
               ),
               Expanded(
                 child: DefaultTabController(
@@ -204,9 +261,64 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
                       Expanded(
                         child: TabBarView(
                           children: [
-                            Center(
-                                child: Text(
-                                    'No Posts')), // Placeholder for posts page
+                            FutureBuilder<List<DocumentSnapshot>>(
+                              future: _fetchUserPosts(userId),
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return Center(
+                                      child: CircularProgressIndicator());
+                                }
+                                if (snapshot.hasError) {
+                                  return Center(
+                                      child: Text('Error: ${snapshot.error}'));
+                                }
+                                if (!snapshot.hasData ||
+                                    snapshot.data!.isEmpty) {
+                                  return Center(
+                                      child: Text('No posts available'));
+                                }
+
+                                var posts = snapshot.data!;
+                                return GridView.builder(
+                                  padding: const EdgeInsets.all(8.0),
+                                  gridDelegate:
+                                      SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 3,
+                                    crossAxisSpacing:
+                                        0, // Atur jarak horizontal antara item
+                                    mainAxisSpacing:
+                                        0, // Atur jarak vertikal antara item
+                                    childAspectRatio: 1,
+                                  ),
+                                  itemCount: posts.length,
+                                  itemBuilder: (context, index) {
+                                    var post = posts[index].data()
+                                        as Map<String, dynamic>;
+                                    return Card(
+                                      // Tambahkan decoration untuk menambahkan garis grid
+                                      elevation:
+                                          0, // Hilangkan bayangan pada Card
+                                      shape: RoundedRectangleBorder(
+                                        side: BorderSide(
+                                            color: Colors.black,
+                                            width:
+                                                1), // Atur warna dan ketebalan garis
+                                        borderRadius: BorderRadius
+                                            .zero, // Atur sudut border Card
+                                      ),
+                                      child: post['imageUrl'] != null &&
+                                              post['imageUrl'].isNotEmpty
+                                          ? Image.network(
+                                              post['imageUrl'],
+                                              fit: BoxFit.cover,
+                                            )
+                                          : Container(), // Handle missing image
+                                    );
+                                  },
+                                );
+                              },
+                            ),
                             FutureBuilder<List<DocumentSnapshot>>(
                               future: _fetchUserMarketplaceItems(userId),
                               builder: (context, snapshot) {
@@ -233,7 +345,8 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
                                     crossAxisCount: 2,
                                     crossAxisSpacing: 8.0,
                                     mainAxisSpacing: 8.0,
-                                    childAspectRatio: 3 / 2,
+                                    childAspectRatio: 3 /
+                                        4, // Adjusted aspect ratio for better visuals
                                   ),
                                   itemCount: items.length,
                                   itemBuilder: (context, index) {
@@ -247,21 +360,38 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
                                             builder: (context) =>
                                                 MarketPlaceDetailScreen(
                                               item: items[index],
+                                              canEditDelete:
+                                                  true, // Enable edit/delete in profile
                                             ),
                                           ),
                                         );
                                       },
                                       child: Card(
+                                        elevation: 4, // Adding shadow
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                              15), // Rounded corners
+                                        ),
                                         child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Expanded(
-                                              child: item['images'] != null &&
-                                                      item['images'].isNotEmpty
-                                                  ? Image.network(
-                                                      item['images'][0],
-                                                      fit: BoxFit.cover,
-                                                    )
-                                                  : Container(), // Handle missing image
+                                              child: ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.vertical(
+                                                        top: Radius.circular(
+                                                            15)),
+                                                child: item['images'] != null &&
+                                                        item['images']
+                                                            .isNotEmpty
+                                                    ? Image.network(
+                                                        item['images'][0],
+                                                        width: double.infinity,
+                                                        fit: BoxFit.cover,
+                                                      )
+                                                    : Container(), // Handle missing image
+                                              ),
                                             ),
                                             Padding(
                                               padding:
@@ -271,20 +401,41 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
                                                     CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
-                                                    item['price']?.toString() ??
-                                                        'N/A',
-                                                    style: TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold),
-                                                  ),
-                                                  Text(
                                                     item['name'] ?? 'No Name',
+                                                    style: TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
                                                   ),
+                                                  SizedBox(height: 4),
+                                                  Row(
+                                                    children: [
+                                                      Icon(
+                                                        Icons.attach_money,
+                                                        color: Colors.green,
+                                                        size: 16,
+                                                      ),
+                                                      SizedBox(width: 4),
+                                                      Text(
+                                                        item['price']
+                                                                ?.toString() ??
+                                                            'N/A',
+                                                        style: TextStyle(
+                                                          fontSize: 14,
+                                                          color: Colors.green,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  SizedBox(height: 4),
                                                   Text(
                                                     item['userName'] ??
                                                         'Unknown User',
                                                     style: TextStyle(
-                                                        color: Colors.grey),
+                                                      color: Colors.grey,
+                                                      fontSize: 12,
+                                                    ),
                                                   ),
                                                 ],
                                               ),

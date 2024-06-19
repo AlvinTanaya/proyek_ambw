@@ -228,6 +228,7 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                                             builder: (context) =>
                                                 MarketPlaceDetailScreen(
                                               item: items[index],
+                                              canEditDelete: false,
                                             ),
                                           ),
                                         );

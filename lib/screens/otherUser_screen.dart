@@ -34,7 +34,15 @@ class _OtherUserScreenState extends State<OtherUserScreen> {
 
       return Scaffold(
         appBar: AppBar(
-          title: _isSearching ? _buildSearchField() : Text('Other Users'),
+          title: _isSearching
+              ? _buildSearchField()
+              : Text(
+                  'Other Users',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 20.0,
+                  ),
+                ),
           backgroundColor: Colors.white,
           iconTheme: IconThemeData(color: Colors.black),
           titleTextStyle: TextStyle(color: Colors.black),

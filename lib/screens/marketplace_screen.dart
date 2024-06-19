@@ -186,6 +186,110 @@ class _MarketPlaceScreenState extends State<MarketPlaceScreen> {
     });
   }
 
+  Widget _buildCategoryTab(String category) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedCategory = category;
+        });
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+        decoration: BoxDecoration(
+          color: selectedCategory == category ? Colors.black : Colors.white,
+          borderRadius: BorderRadius.circular(25.0),
+          border: Border.all(color: Colors.black),
+        ),
+        child: Text(
+          category,
+          style: TextStyle(
+            color: selectedCategory == category ? Colors.white : Colors.black,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildItemCard(DocumentSnapshot item) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => MarketPlaceDetailScreen(
+              item: item,
+              canEditDelete: false, // Disable edit/delete in marketplace
+            ),
+          ),
+        );
+      },
+      child: Card(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15.0),
+        ),
+        elevation: 5,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(15.0),
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(15.0),
+                    ),
+                  ),
+                  child: Center(
+                    child: item['images'] != null && item['images'].isNotEmpty
+                        ? Image.network(
+                            item['images'][0],
+                            fit: BoxFit.cover,
+                          )
+                        : Icon(
+                            Icons.image,
+                            color: Colors.grey[400],
+                            size: 60,
+                          ),
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item['name'] ?? 'No Name',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Icon(Icons.attach_money, size: 16, color: Colors.green),
+                      SizedBox(width: 4),
+                      Text(
+                        item['price']?.toString() ?? 'N/A',
+                        style: TextStyle(color: Colors.green),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -196,53 +300,49 @@ class _MarketPlaceScreenState extends State<MarketPlaceScreen> {
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
+          Container(
+            height: 60,
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: ListView(
+              scrollDirection: Axis.horizontal,
               children: [
-                Text('Today\'s picks',
-                    style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                Spacer(),
-                Icon(Icons.location_on),
-                InkWell(
-                  onTap: _showLocationsDialog,
-                  child: Text(
-                    selectedLocation == 'All'
-                        ? 'Select Location'
-                        : selectedLocation,
-                    style: TextStyle(
-                      color: Colors.blue,
-                      decoration: TextDecoration.underline,
-                    ),
-                  ),
-                ),
+                SizedBox(width: 8.0),
+                _buildCategoryTab('All'),
+                SizedBox(width: 8.0),
+                _buildCategoryTab('Electronics'),
+                SizedBox(width: 8.0),
+                _buildCategoryTab('Automobile'),
+                SizedBox(width: 8.0),
+                _buildCategoryTab('Gaming'),
+                SizedBox(width: 8.0),
               ],
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            padding: const EdgeInsets.all(8.0),
             child: Row(
               children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => InputMarketPlaceScreen()),
-                      );
-                    },
-                    icon: Icon(Icons.edit),
-                    label: Text('Sell'),
-                  ),
+                Text(
+                  'Today\'s picks',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _showCategoriesDialog,
-                    icon: Icon(Icons.list),
-                    label: Text('Categories'),
+                Spacer(),
+                InkWell(
+                  onTap: _showLocationsDialog,
+                  child: Row(
+                    children: [
+                      Icon(Icons.location_on, color: Colors.black),
+                      SizedBox(width: 4),
+                      Text(
+                        selectedLocation == 'All'
+                            ? 'Select Location'
+                            : selectedLocation,
+                        style: TextStyle(
+                          color: Colors.blue,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -285,60 +385,29 @@ class _MarketPlaceScreenState extends State<MarketPlaceScreen> {
                     crossAxisCount: 2,
                     crossAxisSpacing: 8.0,
                     mainAxisSpacing: 8.0,
-                    childAspectRatio: 3 / 2,
+                    childAspectRatio: 3 / 4,
                   ),
                   itemCount: items.length,
                   itemBuilder: (context, index) {
-                    var item = items[index];
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => MarketPlaceDetailScreen(
-                              item: item,
-                            ),
-                          ),
-                        );
-                      },
-                      child: Card(
-                        child: Column(
-                          children: [
-                            Expanded(
-                              child: item['images'] != null &&
-                                      item['images'].isNotEmpty
-                                  ? Image.network(
-                                      item['images'][0],
-                                      fit: BoxFit.cover,
-                                    )
-                                  : Container(), // Handle missing image
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    item['name'] ?? 'No Name',
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                  Text(
-                                    item['price']?.toString() ?? 'N/A',
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
+                    return _buildItemCard(items[index]);
                   },
                 );
               },
             ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => InputMarketPlaceScreen(),
+            ),
+          );
+        },
+        child: Icon(Icons.add),
+        backgroundColor: Colors.blue,
       ),
       bottomNavigationBar: BaseScreen(currentIndex: 3),
     );

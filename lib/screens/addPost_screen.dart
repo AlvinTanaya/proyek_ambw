@@ -17,34 +17,113 @@ void main() {
   ));
 }
 
-class ChooseUploadTypeScreen extends StatelessWidget {
+class ChooseUploadTypeScreen extends StatefulWidget {
+  @override
+  _ChooseUploadTypeScreenState createState() => _ChooseUploadTypeScreenState();
+}
+
+class _ChooseUploadTypeScreenState extends State<ChooseUploadTypeScreen> {
+  late VideoPlayerController _videoController;
+
+  @override
+  void initState() {
+    super.initState();
+    _videoController = VideoPlayerController.asset('assets/images/video.mp4')
+      ..initialize().then((_) {
+        setState(() {});
+        _videoController.setLooping(true);
+        _videoController.play();
+      });
+  }
+
+  @override
+  void dispose() {
+    _videoController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text("Choose Upload Type"),
+        automaticallyImplyLeading: false,
       ),
-      body: Center(
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => AddPostImageScreen()),
-                );
-              },
-              child: Text('Upload Image'),
+            Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => AddPostImageScreen()),
+                  );
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage('assets/images/ok.jpg'),
+                      fit: BoxFit.cover,
+                      colorFilter: ColorFilter.mode(
+                          Colors.black.withOpacity(0.6), BlendMode.dstATop),
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'Upload Image',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => AddPostVideoScreen()),
-                );
-              },
-              child: Text('Upload Video'),
+            SizedBox(height: 16),
+            Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => AddPostVideoScreen()),
+                  );
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: _videoController.value.isInitialized
+                            ? AspectRatio(
+                                aspectRatio: _videoController.value.aspectRatio,
+                                child: VideoPlayer(_videoController),
+                              )
+                            : Center(child: CircularProgressIndicator()),
+                      ),
+                      Center(
+                        child: Text(
+                          'Upload Video',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ],
         ),
@@ -181,6 +260,13 @@ class _AddPostImageScreenState extends State<AddPostImageScreen> {
               child: ElevatedButton(
                 onPressed: getImage,
                 child: Text('Pick Image'),
+                style: ElevatedButton.styleFrom(
+                  primary: Colors.blueAccent,
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
             )
           ],
@@ -326,6 +412,13 @@ class _AddPostVideoScreenState extends State<AddPostVideoScreen> {
               child: ElevatedButton(
                 onPressed: _pickVideo,
                 child: Text('Pick Video'),
+                style: ElevatedButton.styleFrom(
+                  primary: Colors.blueAccent,
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
             )
           ],

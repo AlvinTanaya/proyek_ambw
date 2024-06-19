@@ -1,13 +1,13 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import 'base_screen.dart';
 import 'signin_screen.dart';
 
 class ProfileSettingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(title: Text("Settings")),
       body: Center(
         child: ElevatedButton(
           child: Text("Logout"),
@@ -22,7 +22,6 @@ class ProfileSettingScreen extends StatelessWidget {
           },
         ),
       ),
-      bottomNavigationBar: BaseScreen(currentIndex: 0),
     );
   }
 }
