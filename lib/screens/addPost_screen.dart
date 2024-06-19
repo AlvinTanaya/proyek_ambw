@@ -213,6 +213,8 @@ class _AddPostImageScreenState extends State<AddPostImageScreen> {
         'timestamp': DateTime.now(),
         'userId': user.uid,
         'videoUrl': null,
+        'countLikes' : 0,
+        'likes' : {}
       });
 
       Navigator.pushReplacement(
@@ -362,6 +364,8 @@ class _AddPostVideoScreenState extends State<AddPostVideoScreen> {
         'description': _captionController.text,
         'timestamp': DateTime.now(),
         'userId': user.uid,
+        'countLikes' : 0,
+        'likes' : {}
       });
 
       Navigator.pushReplacement(

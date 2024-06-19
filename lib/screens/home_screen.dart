@@ -2,11 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:proyek_ambw/reusable_widgets/video_widget.dart';
-
 import 'addStory_screen.dart';
 import 'base_screen.dart';
 import 'other_user_profile_screen.dart'; // Import the OtherUserProfileScreen
 import 'story_screen.dart';
+import 'comment_page.dart';
+import 'likers_page.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -119,7 +120,7 @@ class HomeScreen extends StatelessWidget {
                   itemCount: snapshot.data!.docs.length,
                   itemBuilder: (context, index) {
                     DocumentSnapshot post = snapshot.data!.docs[index];
-                    return _buildPostCard(post, context);
+                    return _buildPostCard(post, context, currentUserId);
                   },
                 );
               },
@@ -215,18 +216,20 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPostCard(DocumentSnapshot post, BuildContext context) {
+  Widget _buildPostCard(DocumentSnapshot post, BuildContext context, String currentUserId) {
     String userId = post['userId'] as String;
+    Map<String, bool> likes = (post.data() as Map)['likes']?.cast<String, bool>() ?? {};
+    int countLikes = likes.values.where((value) => value).length;
+    bool isLiked = likes[FirebaseAuth.instance.currentUser!.uid] ?? false;
 
     return FutureBuilder<DocumentSnapshot>(
-      future: FirebaseFirestore.instance.collection('users').doc(userId).get(),
+      future: FirebaseFirestore.instance.collection('users').doc(post['userId']).get(),
       builder: (context, snapshot) {
         if (!snapshot.hasData || snapshot.hasError) {
           return Card(
             child: ListTile(
               leading: CircleAvatar(),
-              title: Text('Loading...',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              title: Text('Loading...', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           );
         }
@@ -248,7 +251,6 @@ class HomeScreen extends StatelessWidget {
                   child: Text(username,
                       style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
-                trailing: Icon(Icons.more_vert),
               ),
               if (post['imageUrl'] != null)
                 Image.network(post['imageUrl'] as String, fit: BoxFit.cover)
@@ -265,20 +267,41 @@ class HomeScreen extends StatelessWidget {
                   Row(
                     children: <Widget>[
                       IconButton(
-                          icon: Icon(Icons.favorite_border), onPressed: () {}),
-                      IconButton(icon: Icon(Icons.comment), onPressed: () {}),
-                      IconButton(icon: Icon(Icons.send), onPressed: () {}),
+                          icon: Icon(isLiked ? Icons.favorite : Icons.favorite_border, color: isLiked ? Colors.red : null),
+                          onPressed: () => toggleLike(post, currentUserId),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.comment),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CommentPage(postId: post.id),
+                            ),
+                          );
+                        },
+                      ),
                     ],
                   ),
                   IconButton(
                       icon: Icon(Icons.bookmark_border), onPressed: () {}),
                 ],
               ),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                alignment: Alignment.topLeft,
-                child: Text('Liked by others',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => LikersPage(postId: post.id),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  alignment: Alignment.topLeft,
+                  child: Text('Liked by $countLikes fans',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
               ),
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 16),
@@ -302,7 +325,6 @@ class HomeScreen extends StatelessWidget {
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 alignment: Alignment.topLeft,
-                child: Text('View all comments'),
               ),
             ],
           ),
@@ -310,4 +332,23 @@ class HomeScreen extends StatelessWidget {
       },
     );
   }
+}
+
+void toggleLike(DocumentSnapshot post, String userId) async {
+  var postRef = FirebaseFirestore.instance.collection('post').doc(post.id);
+  
+  var snapshot = await postRef.get();
+  var data = snapshot.data() as Map;
+  var likes = Map<String, bool>.from(data['likes'] ?? {});
+
+  if (likes.containsKey(userId)) {
+    likes.remove(userId);
+  } else {
+    likes[userId] = true;
+  }
+  int countLikes = likes.values.where((value) => value).length;
+  await postRef.update({
+    'likes': likes,
+    'countLikes': countLikes,
+  });
 }

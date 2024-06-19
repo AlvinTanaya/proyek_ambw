@@ -253,14 +253,19 @@ class _EditItemScreenState extends State<EditItemScreen> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.item['name']);
-    _priceController = TextEditingController(text: widget.item['price'].toString());
+    _priceController =
+        TextEditingController(text: widget.item['price'].toString());
     _categoryController = TextEditingController(text: widget.item['category']);
     _locationController = TextEditingController(text: widget.item['location']);
-    _descriptionController = TextEditingController(text: widget.item['description']);
+    _descriptionController =
+        TextEditingController(text: widget.item['description']);
   }
 
   void _updateItem() async {
-    await FirebaseFirestore.instance.collection('marketplace').doc(widget.item.id).update({
+    await FirebaseFirestore.instance
+        .collection('marketplace')
+        .doc(widget.item.id)
+        .update({
       'name': _nameController.text,
       'price': double.parse(_priceController.text),
       'category': _categoryController.text,

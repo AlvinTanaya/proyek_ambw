@@ -16,6 +16,7 @@ class SignInScreen extends StatefulWidget {
 class _SignInScreenState extends State<SignInScreen> {
   TextEditingController _passwordTextController = TextEditingController();
   TextEditingController _emailTextController = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -49,17 +50,30 @@ class _SignInScreenState extends State<SignInScreen> {
                   height: 5,
                 ),
                 forgetPassword(context),
-                firebaseUIButton(context, "Sign In", () {
-                  FirebaseAuth.instance
-                      .signInWithEmailAndPassword(
-                          email: _emailTextController.text,
-                          password: _passwordTextController.text)
-                      .then((value) {
+                firebaseUIButton(context, "Sign In", () async {
+                  try {
+                    await FirebaseAuth.instance.signInWithEmailAndPassword(
+                        email: _emailTextController.text.trim(),
+                        password: _passwordTextController.text.trim());
                     Navigator.push(context,
                         MaterialPageRoute(builder: (context) => HomeScreen()));
-                  }).onError((error, stackTrace) {
-                    print("Error ${error.toString()}");
-                  });
+                  } on FirebaseAuthException catch (e) {
+                    String errorMessage = "An error occurred";
+                    if (e.code == 'user-not-found') {
+                      errorMessage = "No user found for that email.";
+                    } else if (e.code == 'wrong-password') {
+                      errorMessage = "Wrong password provided for that user.";
+                    } else if (e.code == 'invalid-email') {
+                      errorMessage = "Email address is badly formatted.";
+                    }
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(errorMessage)),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Failed to sign in: $e")),
+                    );
+                  }
                 }),
                 signUpOption()
               ],
