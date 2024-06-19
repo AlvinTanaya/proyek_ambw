@@ -428,15 +428,7 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
                                                       ),
                                                     ],
                                                   ),
-                                                  SizedBox(height: 4),
-                                                  Text(
-                                                    item['userName'] ??
-                                                        'Unknown User',
-                                                    style: TextStyle(
-                                                      color: Colors.grey,
-                                                      fontSize: 12,
-                                                    ),
-                                                  ),
+                                                  SizedBox(height: 4)
                                                 ],
                                               ),
                                             ),

@@ -12,39 +12,25 @@ class MarketPlaceDetailScreen extends StatelessWidget {
 
   void _contactSeller(BuildContext context) async {
     String userId = item['userId'];
-    print('User ID from marketplace item: $userId');
-
     DocumentSnapshot userDoc =
         await FirebaseFirestore.instance.collection('users').doc(userId).get();
-    print('userDoc: $userDoc');
-    print('userDoc exists: ${userDoc.exists}');
-    print('userDoc data: ${userDoc.data()}');
 
     if (userDoc.exists) {
       Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
       String phoneNumber = userData['phoneNumber'];
-      print('Phone Number: $phoneNumber');
 
-      // Ensure the phone number is in the correct format
       if (!phoneNumber.startsWith('62')) {
-        phoneNumber = '62' +
-            phoneNumber
-                .substring(1); // Remove leading zero and add country code
+        phoneNumber = '62' + phoneNumber.substring(1);
       }
-      print('Formatted Phone Number: $phoneNumber');
 
       String message =
           'Hello, I am interested in your listing: ${item['name']}';
-      print('Message: $message');
-
       String whatsappUrl =
           'https://wa.me/$phoneNumber?text=${Uri.encodeComponent(message)}';
-      print('WhatsApp URL: $whatsappUrl');
 
       try {
         await launch(whatsappUrl);
       } catch (e) {
-        print('Error launching WhatsApp: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Could not open WhatsApp')),
         );
@@ -65,9 +51,8 @@ class MarketPlaceDetailScreen extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Item deleted successfully')),
       );
-      Navigator.pop(context); // Go back to the previous screen
+      Navigator.pop(context);
     } catch (e) {
-      print('Error deleting item: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to delete item')),
       );
@@ -90,151 +75,167 @@ class MarketPlaceDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(item['name']),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.edit),
-            onPressed: () => _editItem(context),
-          ),
-          IconButton(
-            icon: Icon(Icons.delete),
-            onPressed: () => _deleteItem(context),
-          ),
-        ],
+        // Removed the title
+        actions: canEditDelete
+            ? [
+                IconButton(
+                  icon: Icon(Icons.edit),
+                  onPressed: () => _editItem(context),
+                ),
+                IconButton(
+                  icon: Icon(Icons.delete),
+                  onPressed: () => _deleteItem(context),
+                ),
+              ]
+            : [],
       ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Card(
-              elevation: 4,
-              margin: EdgeInsets.all(16.0),
+            Stack(
+              children: [
+                CarouselSlider(
+                  options: CarouselOptions(
+                    height: 300,
+                    enableInfiniteScroll: false,
+                    enlargeCenterPage: true,
+                    viewportFraction: 1.0,
+                  ),
+                  items: images.map((imageUrl) {
+                    return Builder(
+                      builder: (BuildContext context) {
+                        return Container(
+                          width: MediaQuery.of(context).size.width,
+                          margin: EdgeInsets.symmetric(horizontal: 5.0),
+                          decoration: BoxDecoration(
+                            image: DecorationImage(
+                              image: NetworkImage(imageUrl),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  }).toList(),
+                ),
+                Positioned(
+                  bottom: 10,
+                  left: 0,
+                  right: 0,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(images.length, (index) {
+                      return Container(
+                        width: 8.0,
+                        height: 8.0,
+                        margin: EdgeInsets.symmetric(
+                            vertical: 10.0, horizontal: 2.0),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withOpacity(0.8),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    height: 300, // Set fixed height for the image
-                    child: Stack(
-                      children: [
-                        CarouselSlider(
-                          options: CarouselOptions(
-                            height: 300,
-                            enableInfiniteScroll: false,
-                            enlargeCenterPage: true,
-                          ),
-                          items: images.map((imageUrl) {
-                            return Builder(
-                              builder: (BuildContext context) {
-                                return Container(
-                                  width: MediaQuery.of(context).size.width,
-                                  margin: EdgeInsets.symmetric(horizontal: 5.0),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(8.0),
-                                    image: DecorationImage(
-                                      image: NetworkImage(imageUrl),
-                                      fit: BoxFit.cover, // Crop if necessary
-                                    ),
-                                  ),
-                                );
-                              },
-                            );
-                          }).toList(),
-                        ),
-                      ],
+                  Text(
+                    item['name'],
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  Container(
-                    padding: EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Center(
-                          child: Text(
-                            item['name'], // Item name centered here
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
+                  SizedBox(height: 10),
+                  buildInfoRow('Price', item['price'].toString(),
+                      Icons.attach_money, Colors.green),
+                  buildInfoRow('Category', item['category'], Icons.category,
+                      Colors.blue),
+                  buildInfoRow('Location', item['location'], Icons.location_on,
+                      Colors.red),
+                  buildInfoRow('Description', item['description'],
+                      Icons.description, Colors.grey),
+                  buildInfoRow(
+                      'Seller', item['userName'], Icons.person, Colors.black),
+                  SizedBox(height: 30),
+                  Center(
+                    child: GestureDetector(
+                      onTap: () => _contactSeller(context),
+                      child: SizedBox(
+                        width: double
+                            .infinity, // Make the button span the full width
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            vertical: 10,
+                            horizontal: 0, // No horizontal padding
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment:
+                                MainAxisAlignment.center, // Center the content
+                            children: [
+                              Image.asset(
+                                'assets/images/WhatsApp_icon.png',
+                                height: 30,
+                              ),
+                              SizedBox(width: 10),
+                              Text(
+                                'Contact Me',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Icon(Icons.attach_money, color: Colors.green),
-                            SizedBox(width: 8),
-                            Text(
-                              'Price: ${item['price']}',
-                              style: TextStyle(fontSize: 18),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Icon(Icons.category, color: Colors.blue),
-                            SizedBox(width: 8),
-                            Text(
-                              'Category: ${item['category']}',
-                              style: TextStyle(fontSize: 18),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Icon(Icons.location_on, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text(
-                              'Location: ${item['location']}',
-                              style: TextStyle(fontSize: 18),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Icon(Icons.description, color: Colors.grey),
-                            SizedBox(width: 8),
-                            Text(
-                              'Description: ${item['description']}',
-                              style: TextStyle(fontSize: 18),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Icon(Icons.person, color: Colors.black),
-                            SizedBox(width: 8),
-                            Text(
-                              'Seller: ${item['userName']}',
-                              style: TextStyle(fontSize: 18),
-                            ),
-                          ],
-                        ),
-                      ],
+                      ),
                     ),
                   ),
+                  SizedBox(height: 20),
                 ],
               ),
             ),
-            SizedBox(height: 20),
-            Center(
-              child: ElevatedButton.icon(
-                onPressed: () => _contactSeller(context),
-                icon: Icon(Icons.message),
-                label: Text('Contact Seller'),
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(height: 20),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget buildInfoRow(String label, String value, IconData icon, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color),
+          SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              Text(
+                value,
+                style: TextStyle(fontSize: 18),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -296,9 +297,8 @@ class _EditMarketPlaceItemScreenState extends State<EditMarketPlaceItemScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Item updated successfully')),
         );
-        Navigator.pop(context); // Go back to the previous screen
+        Navigator.pop(context);
       } catch (e) {
-        print('Error updating item: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to update item')),
         );

@@ -69,7 +69,7 @@ class _ChooseUploadTypeScreenState extends State<ChooseUploadTypeScreen> {
                       image: AssetImage('assets/images/ok.jpg'),
                       fit: BoxFit.cover,
                       colorFilter: ColorFilter.mode(
-                          Colors.black.withOpacity(0.6), BlendMode.dstATop),
+                          Colors.black.withOpacity(0.8), BlendMode.dstATop),
                     ),
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -100,27 +100,34 @@ class _ChooseUploadTypeScreenState extends State<ChooseUploadTypeScreen> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: _videoController.value.isInitialized
-                            ? AspectRatio(
-                                aspectRatio: _videoController.value.aspectRatio,
-                                child: VideoPlayer(_videoController),
-                              )
-                            : Center(child: CircularProgressIndicator()),
-                      ),
-                      Center(
-                        child: Text(
-                          'Upload Video',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: _videoController.value.isInitialized
+                              ? VideoPlayer(_videoController)
+                              : Center(child: CircularProgressIndicator()),
+                        ),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color.fromARGB(255, 133, 133, 133)
+                                .withOpacity(
+                                    0.3), // Adjusted opacity to match the image overlay
+                            borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                      ),
-                    ],
+                        Center(
+                          child: Text(
+                            'Upload Video',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -213,8 +220,6 @@ class _AddPostImageScreenState extends State<AddPostImageScreen> {
         'timestamp': DateTime.now(),
         'userId': user.uid,
         'videoUrl': null,
-        'countLikes' : 0,
-        'likes' : {}
       });
 
       Navigator.pushReplacement(
@@ -239,39 +244,39 @@ class _AddPostImageScreenState extends State<AddPostImageScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: TextField(
-                controller: _captionController,
-                decoration: InputDecoration(
-                  labelText: 'Caption',
-                ),
-              ),
-            ),
-            SizedBox(height: 10),
-            Center(
-              child: _image == null
-                  ? Text('No image selected.')
-                  : Image.file(_image!, height: 300),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: ElevatedButton(
-                onPressed: getImage,
-                child: Text('Pick Image'),
-                style: ElevatedButton.styleFrom(
-                  primary: Colors.blueAccent,
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              GestureDetector(
+                onTap: getImage,
+                child: Container(
+                  height: 200,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Center(
+                    child: _image == null
+                        ? Icon(Icons.add_a_photo, size: 50, color: Colors.grey)
+                        : Image.file(_image!, fit: BoxFit.cover, height: 200),
                   ),
                 ),
               ),
-            )
-          ],
+              SizedBox(height: 16),
+              TextField(
+                controller: _captionController,
+                decoration: InputDecoration(
+                  labelText: 'Caption',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );
@@ -364,8 +369,6 @@ class _AddPostVideoScreenState extends State<AddPostVideoScreen> {
         'description': _captionController.text,
         'timestamp': DateTime.now(),
         'userId': user.uid,
-        'countLikes' : 0,
-        'likes' : {}
       });
 
       Navigator.pushReplacement(
@@ -390,42 +393,45 @@ class _AddPostVideoScreenState extends State<AddPostVideoScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: TextField(
-                controller: _captionController,
-                decoration: InputDecoration(
-                  labelText: 'Caption',
-                ),
-              ),
-            ),
-            SizedBox(height: 10),
-            Center(
-              child: _videoFile == null
-                  ? Text('No video selected.')
-                  : AspectRatio(
-                      aspectRatio: _controller!.value.aspectRatio,
-                      child: VideoPlayer(_controller!),
-                    ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: ElevatedButton(
-                onPressed: _pickVideo,
-                child: Text('Pick Video'),
-                style: ElevatedButton.styleFrom(
-                  primary: Colors.blueAccent,
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              GestureDetector(
+                onTap: _pickVideo,
+                child: Container(
+                  height: 200,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Center(
+                    child: _videoFile == null
+                        ? Icon(Icons.add_a_photo, size: 50, color: Colors.grey)
+                        : _controller != null &&
+                                _controller!.value.isInitialized
+                            ? AspectRatio(
+                                aspectRatio: _controller!.value.aspectRatio,
+                                child: VideoPlayer(_controller!),
+                              )
+                            : CircularProgressIndicator(),
                   ),
                 ),
               ),
-            )
-          ],
+              SizedBox(height: 16),
+              TextField(
+                controller: _captionController,
+                decoration: InputDecoration(
+                  labelText: 'Caption',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );

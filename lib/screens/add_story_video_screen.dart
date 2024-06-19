@@ -17,11 +17,17 @@ class AddStoryVideoScreen extends StatefulWidget {
 class _AddStoryVideoScreenState extends State<AddStoryVideoScreen> {
   File? _videoFile;
   VideoPlayerController? _controller;
-  final picker = ImagePicker();
   bool _isVideoLoading = false;
 
-  Future getVideo() async {
-    final pickedFile = await picker.getVideo(source: ImageSource.gallery);
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickVideo() async {
+    final pickedFile =
+        await ImagePicker().getVideo(source: ImageSource.gallery);
 
     if (pickedFile != null) {
       setState(() {
@@ -36,9 +42,11 @@ class _AddStoryVideoScreenState extends State<AddStoryVideoScreen> {
             _isVideoLoading = false;
           });
           _controller!.play();
+        })
+        ..setLooping(true)
+        ..addListener(() {
+          setState(() {});
         });
-    } else {
-      print('No video picked.');
     }
   }
 
@@ -95,12 +103,6 @@ class _AddStoryVideoScreenState extends State<AddStoryVideoScreen> {
   }
 
   @override
-  void dispose() {
-    _controller?.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -113,28 +115,35 @@ class _AddStoryVideoScreenState extends State<AddStoryVideoScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            SizedBox(height: 10),
-            Center(
-              child: _videoFile == null
-                  ? Text('No video selected.')
-                  : _controller!.value.isInitialized
-                      ? AspectRatio(
-                          aspectRatio: _controller!.value.aspectRatio,
-                          child: VideoPlayer(_controller!),
-                        )
-                      : CircularProgressIndicator(),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: ElevatedButton(
-                onPressed: getVideo,
-                child: Text('Pick Video'),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              GestureDetector(
+                onTap: _pickVideo,
+                child: Container(
+                  height: 200,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Center(
+                    child: _videoFile == null
+                        ? Icon(Icons.add_a_photo, size: 50, color: Colors.grey)
+                        : _controller != null &&
+                                _controller!.value.isInitialized
+                            ? AspectRatio(
+                                aspectRatio: _controller!.value.aspectRatio,
+                                child: VideoPlayer(_controller!),
+                              )
+                            : CircularProgressIndicator(),
+                  ),
+                ),
               ),
-            )
-          ],
+              SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );

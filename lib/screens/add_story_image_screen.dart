@@ -10,10 +10,8 @@ import 'package:image_picker/image_picker.dart';
 import 'home_screen.dart';
 
 class AddStoryImageScreen extends StatefulWidget {
-  
   @override
   _AddStoryImageScreenState createState() => _AddStoryImageScreenState();
-
 }
 
 class _AddStoryImageScreenState extends State<AddStoryImageScreen> {
@@ -112,23 +110,29 @@ class _AddStoryImageScreenState extends State<AddStoryImageScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            SizedBox(height: 10),
-            Center(
-              child: _image == null
-                  ? Text('No image selected.')
-                  : Image.file(_image!, height: 300),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: ElevatedButton(
-                onPressed: getImage,
-                child: Text('Pick Image'),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              GestureDetector(
+                onTap: getImage,
+                child: Container(
+                  height: 200,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Center(
+                    child: _image == null
+                        ? Icon(Icons.add_a_photo, size: 50, color: Colors.grey)
+                        : Image.file(_image!, fit: BoxFit.cover, height: 200),
+                  ),
+                ),
               ),
-            )
-          ],
+              SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );

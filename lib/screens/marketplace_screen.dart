@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 
 import 'base_screen.dart';
 import 'input_marketplace_screen.dart';
@@ -218,7 +218,7 @@ class _MarketPlaceScreenState extends State<MarketPlaceScreen> {
           MaterialPageRoute(
             builder: (context) => MarketPlaceDetailScreen(
               item: item,
-              canEditDelete: false, // Disable edit/delete in marketplace
+              canEditDelete: false,
             ),
           ),
         );
@@ -296,6 +296,7 @@ class _MarketPlaceScreenState extends State<MarketPlaceScreen> {
       appBar: AppBar(
         title: isSearching ? _buildSearchField() : _buildTitle(context),
         actions: _buildActions(),
+        automaticallyImplyLeading: false,
       ),
       body: Column(
         children: [
@@ -384,54 +385,11 @@ class _MarketPlaceScreenState extends State<MarketPlaceScreen> {
                     crossAxisCount: 2,
                     crossAxisSpacing: 8.0,
                     mainAxisSpacing: 8.0,
-                    childAspectRatio: 3 / 2,
+                    childAspectRatio: 3 / 4,
                   ),
                   itemCount: items.length,
                   itemBuilder: (context, index) {
-                    var item = items[index];
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => MarketPlaceDetailScreen(
-                              item: item,
-                            ),
-                          ),
-                        );
-                      },
-                      child: Card(
-                        child: Column(
-                          children: [
-                            Expanded(
-                              child: item['images'] != null &&
-                                      item['images'].isNotEmpty
-                                  ? Image.network(
-                                      item['images'][0],
-                                      fit: BoxFit.cover,
-                                    )
-                                  : Container(), // Handle missing image
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    item['name'] ?? 'No Name',
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                  Text(
-                                    item['price']?.toString() ?? 'N/A',
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
+                    return _buildItemCard(items[index]);
                   },
                 );
               },
