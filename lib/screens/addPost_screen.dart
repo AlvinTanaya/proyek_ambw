@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
@@ -7,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
-
 import 'base_screen.dart';
 import 'home_screen.dart';
 
@@ -147,31 +145,36 @@ class AddPostImageScreen extends StatefulWidget {
 
 class _AddPostImageScreenState extends State<AddPostImageScreen> {
   final TextEditingController _captionController = TextEditingController();
-  File? _image;
+  List<File> _images = [];
   final picker = ImagePicker();
 
   Future getImage() async {
-    final pickedFile = await picker.getImage(source: ImageSource.gallery);
+    final pickedFiles = await picker.pickMultiImage();
 
-    if (pickedFile != null) {
-      File? croppedFile = await ImageCropper().cropImage(
-        sourcePath: pickedFile.path,
-        aspectRatioPresets: [CropAspectRatioPreset.square],
-        androidUiSettings: AndroidUiSettings(
-          toolbarTitle: 'Crop your image',
-          toolbarColor: Colors.deepPurple,
-          toolbarWidgetColor: Colors.white,
-          initAspectRatio: CropAspectRatioPreset.original,
-          lockAspectRatio: true,
-        ),
-        iosUiSettings: IOSUiSettings(
-          minimumAspectRatio: 1.0,
-          aspectRatioLockEnabled: true,
-        ),
-      );
-
+    if (pickedFiles != null) {
+      List<File> croppedFiles = [];
+      for (var pickedFile in pickedFiles) {
+        File? croppedFile = await ImageCropper().cropImage(
+          sourcePath: pickedFile.path,
+          aspectRatioPresets: [CropAspectRatioPreset.square],
+          androidUiSettings: AndroidUiSettings(
+            toolbarTitle: 'Crop your image',
+            toolbarColor: Colors.deepPurple,
+            toolbarWidgetColor: Colors.white,
+            initAspectRatio: CropAspectRatioPreset.original,
+            lockAspectRatio: true,
+          ),
+          iosUiSettings: IOSUiSettings(
+            minimumAspectRatio: 1.0,
+            aspectRatioLockEnabled: true,
+          ),
+        );
+        if (croppedFile != null) {
+          croppedFiles.add(croppedFile);
+        }
+      }
       setState(() {
-        _image = croppedFile;
+        _images = croppedFiles;
       });
     } else {
       print('No image picked.');
@@ -179,9 +182,9 @@ class _AddPostImageScreenState extends State<AddPostImageScreen> {
   }
 
   Future uploadPost(BuildContext context) async {
-    if (_image == null || _captionController.text.isEmpty) {
+    if (_images.isEmpty || _captionController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text("Please provide an image and a caption."),
+        content: Text("Please provide images and a caption."),
       ));
       return;
     }
@@ -202,18 +205,22 @@ class _AddPostImageScreenState extends State<AddPostImageScreen> {
       String username = userData['username'] ?? 'Anonymous';
       String profilePicture = userData['profilePicture'] ?? 'default.png';
 
-      String fileName =
-          'posts/${DateTime.now().millisecondsSinceEpoch.toString()}';
-      firebase_storage.UploadTask task = firebase_storage
-          .FirebaseStorage.instance
-          .ref(fileName)
-          .putFile(_image!);
+      List<String> imageUrls = [];
+      for (var image in _images) {
+        String fileName =
+            'posts/${DateTime.now().millisecondsSinceEpoch.toString()}_${_images.indexOf(image)}';
+        firebase_storage.UploadTask task = firebase_storage
+            .FirebaseStorage.instance
+            .ref(fileName)
+            .putFile(image);
 
-      final snapshot = await task.whenComplete(() {});
-      final imageUrl = await snapshot.ref.getDownloadURL();
+        final snapshot = await task.whenComplete(() {});
+        final imageUrl = await snapshot.ref.getDownloadURL();
+        imageUrls.add(imageUrl);
+      }
 
       await FirebaseFirestore.instance.collection('post').add({
-        'imageUrl': imageUrl,
+        'imageUrls': imageUrls,
         'userProfile': profilePicture,
         'caption': username,
         'description': _captionController.text,
@@ -258,9 +265,17 @@ class _AddPostImageScreenState extends State<AddPostImageScreen> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Center(
-                    child: _image == null
+                    child: _images.isEmpty
                         ? Icon(Icons.add_a_photo, size: 50, color: Colors.grey)
-                        : Image.file(_image!, fit: BoxFit.cover, height: 200),
+                        : ListView(
+                            scrollDirection: Axis.horizontal,
+                            children: _images
+                                .map((image) => Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Image.file(image, fit: BoxFit.cover, height: 200),
+                                    ))
+                                .toList(),
+                          ),
                   ),
                 ),
               ),

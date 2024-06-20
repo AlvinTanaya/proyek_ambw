@@ -8,6 +8,7 @@ import 'other_user_profile_screen.dart'; // Import the OtherUserProfileScreen
 import 'story_screen.dart';
 import 'comment_page.dart';
 import 'likers_page.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -222,6 +223,11 @@ class HomeScreen extends StatelessWidget {
     int countLikes = likes.values.where((value) => value).length;
     bool isLiked = likes[FirebaseAuth.instance.currentUser!.uid] ?? false;
 
+    // Correcting the method of accessing imageUrls with proper null safety
+    List<dynamic> imageUrls = (post.data() as Map?)?.containsKey('imageUrls') ?? false
+        ? List<dynamic>.from((post.data() as Map)['imageUrls'])
+        : [];
+
     return FutureBuilder<DocumentSnapshot>(
       future: FirebaseFirestore.instance.collection('users').doc(post['userId']).get(),
       builder: (context, snapshot) {
@@ -248,27 +254,74 @@ class HomeScreen extends StatelessWidget {
                 ),
                 title: GestureDetector(
                   onTap: () => _navigateToUserProfile(context, userId),
-                  child: Text(username,
-                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: Text(username, style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ),
-              if (post['imageUrl'] != null)
-                Image.network(post['imageUrl'] as String, fit: BoxFit.cover)
-              else if (post['videoUrl'] != null)
+              if (imageUrls.isNotEmpty)
+                Column(
+                  children: [
+                    CarouselSlider(
+                      options: CarouselOptions(
+                        height: 300,
+                        enlargeCenterPage: true,
+                        viewportFraction: 1.0,
+                        aspectRatio: 2.0,
+                        enableInfiniteScroll: false,
+                        autoPlay: false,
+                        disableCenter: true,
+                        scrollPhysics: imageUrls.length == 1 ? NeverScrollableScrollPhysics() : null,
+                      ),
+                      items: imageUrls.map((url) {
+                        return Builder(
+                          builder: (BuildContext context) {
+                            return Container(
+                              width: MediaQuery.of(context).size.width,
+                              margin: EdgeInsets.symmetric(horizontal: 5.0),
+                              decoration: BoxDecoration(
+                                image: DecorationImage(
+                                  image: NetworkImage(url),
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    if (imageUrls.length > 1)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: imageUrls.map((url) {
+                          int index = imageUrls.indexOf(url);
+                          return Container(
+                            width: 8.0,
+                            height: 8.0,
+                            margin: EdgeInsets.symmetric(vertical: 10.0, horizontal: 2.0),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.grey,
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                  ],
+                ),
+              if (post['videoUrl'] != null)
                 AspectRatio(
                   aspectRatio: 16 / 9,
                   child: VideoPlayerWidget(url: post['videoUrl'] as String),
-                )
-              else
+                ),
+              if (imageUrls.isEmpty && post['videoUrl'] == null)
                 Text('No media available'),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: <Widget>[
+                  // Group for like and comment icons on the left
                   Row(
                     children: <Widget>[
                       IconButton(
-                          icon: Icon(isLiked ? Icons.favorite : Icons.favorite_border, color: isLiked ? Colors.red : null),
-                          onPressed: () => toggleLike(post, currentUserId),
+                        icon: Icon(isLiked ? Icons.favorite : Icons.favorite_border, color: isLiked ? Colors.red : null),
+                        onPressed: () => toggleLike(post, currentUserId),
                       ),
                       IconButton(
                         icon: Icon(Icons.comment),
@@ -283,8 +336,13 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ],
                   ),
+                  // Spacer pushes the bookmark icon to the right
+                  Spacer(),
+                  // Bookmark icon on the right
                   IconButton(
-                      icon: Icon(Icons.bookmark_border), onPressed: () {}),
+                    icon: Icon(Icons.bookmark_border),
+                    onPressed: () {},
+                  ),
                 ],
               ),
               GestureDetector(
@@ -299,8 +357,7 @@ class HomeScreen extends StatelessWidget {
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: 16),
                   alignment: Alignment.topLeft,
-                  child: Text('Liked by $countLikes fans',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: Text('Liked by $countLikes fans', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ),
               Container(
@@ -332,7 +389,10 @@ class HomeScreen extends StatelessWidget {
       },
     );
   }
+
+
 }
+
 
 void toggleLike(DocumentSnapshot post, String userId) async {
   var postRef = FirebaseFirestore.instance.collection('post').doc(post.id);

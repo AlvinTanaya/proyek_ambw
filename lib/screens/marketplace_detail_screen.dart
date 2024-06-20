@@ -119,6 +119,7 @@ class MarketPlaceDetailScreen extends StatelessWidget {
                     );
                   }).toList(),
                 ),
+                
                 Positioned(
                   bottom: 10,
                   left: 0,
