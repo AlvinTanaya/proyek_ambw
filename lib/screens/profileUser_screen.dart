@@ -1,14 +1,19 @@
 import 'dart:io';
-
+import 'dart:typed_data';
+import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-
+import 'package:video_thumbnail/video_thumbnail.dart';
+import 'package:path_provider/path_provider.dart';
 import 'base_screen.dart';
 import 'marketplace_detail_screen.dart';
 import 'profile_setting_screen.dart';
+import 'post_detail_screen.dart';
+import 'signin_screen.dart';
+import 'bookmark.dart';
 
 class ProfileUserScreen extends StatefulWidget {
   @override
@@ -23,6 +28,7 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
   late User currentUser;
   late Future<Map<String, dynamic>> profileData;
   File? _imageFile;
+  Uint8List? _thumbnailData;
 
   @override
   void initState() {
@@ -77,6 +83,7 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
     QuerySnapshot querySnapshot = await _firestore
         .collection('marketplace')
         .where('userId', isEqualTo: userId)
+        .orderBy('timestamp', descending: true) // Order by timestamp
         .get();
     return querySnapshot.docs;
   }
@@ -85,6 +92,7 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
     QuerySnapshot querySnapshot = await _firestore
         .collection('post')
         .where('userId', isEqualTo: userId)
+        .orderBy('timestamp', descending: true) // Order by timestamp
         .get();
     return querySnapshot.docs;
   }
@@ -93,12 +101,13 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
     QuerySnapshot querySnapshot = await _firestore
         .collection('post')
         .where('userId', isEqualTo: userId)
+        .orderBy('timestamp', descending: true) // Order by timestamp
         .get();
 
     int imageCount = 0;
     querySnapshot.docs.forEach((doc) {
       Map<String, dynamic> postData = doc.data() as Map<String, dynamic>;
-      if (postData['imageUrl'] != null && postData['imageUrl'].isNotEmpty) {
+      if (postData['imageUrls'] != null && postData['imageUrls'].isNotEmpty) {
         imageCount++;
       }
     });
@@ -108,6 +117,135 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
 
   int _countLinked(List<dynamic> linked) {
     return linked.length;
+  }
+
+  void _showFeedbackDialog(BuildContext context) {
+    String _feedback = '';
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10.0),
+          ),
+          title: Text('Give Feedback'),
+          content: Container(
+            width: double.maxFinite,
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Enter your feedback...',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 5,
+              onChanged: (value) {
+                _feedback = value;
+              },
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            ElevatedButton(
+              child: Text('Submit'),
+              onPressed: () async {
+                String feedbackText = _feedback;
+                await Future.delayed(Duration(seconds: 1));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    backgroundColor: Colors.green,
+                    content: Text('Feedback submitted successfully!'),
+                  ),
+                );
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<String?> _generateThumbnail(String videoUrl) async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      print("Temporary Directory: ${tempDir.path}");
+      final thumbnailData = await VideoThumbnail.thumbnailData(
+        video: videoUrl,
+        imageFormat: ImageFormat.PNG,
+        maxHeight: 300,
+        quality: 100,
+        timeMs: 2000,
+      );
+
+      if (thumbnailData == null) {
+        print("Thumbnail data is null");
+        return null;
+      }
+
+      print("Thumbnail data generated successfully");
+
+      final thumbnailFile = File('${tempDir.path}/thumbnail.png');
+      await thumbnailFile.writeAsBytes(thumbnailData);
+
+      final storageRef = _storage.ref().child('thumbnails/${currentUser.uid}_${DateTime.now().millisecondsSinceEpoch}.png');
+      await storageRef.putFile(thumbnailFile);
+
+      final downloadUrl = await storageRef.getDownloadURL();
+      print("Thumbnail Download URL: $downloadUrl");
+      return downloadUrl;
+    } catch (e) {
+      print('Error generating thumbnail: $e');
+      return null;
+    }
+  }
+
+  Future<void> _uploadVideoWithThumbnail(String videoUrl, String description) async {
+    try {
+      final thumbnailUrl = await _generateThumbnail(videoUrl);
+
+      if (thumbnailUrl == null) {
+        throw Exception('Failed to generate thumbnail');
+      }
+
+      await _firestore.collection('post').add({
+        'videoUrl': videoUrl,
+        'thumbnailUrl': thumbnailUrl,
+        'userId': currentUser.uid,
+        'description': description,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      print('Error uploading video with thumbnail: $e');
+    }
+  }
+
+  void _logout() async {
+    try {
+      await _auth.signOut();
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (BuildContext context) => SignInScreen()),
+      );
+    } catch (e) {
+      print('Error logging out: $e');
+    }
+  }
+
+  void _deleteAccount() async {
+    try {
+      await currentUser.delete();
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (BuildContext context) => SignInScreen()),
+      );
+    } catch (e) {
+      print('Error deleting account: $e');
+    }
   }
 
   @override
@@ -137,18 +275,55 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
         return Scaffold(
           appBar: AppBar(
             backgroundColor: Colors.white,
-            automaticallyImplyLeading: false, // Remove the back arrow
+            automaticallyImplyLeading: false,
             title: Text(profileData['username'],
                 style: TextStyle(color: Colors.black)),
             actions: [
               IconButton(
-                icon: Icon(Icons.settings, color: Colors.black),
+                icon: Icon(Icons.bookmark, color: Colors.black),
                 onPressed: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => ProfileSettingScreen()),
+                        builder: (context) => BookmarkScreen()),
                   );
+                },
+              ),
+              PopupMenuButton(
+                icon: Icon(Icons.settings, color: Colors.black),
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    child: Text('Edit Profile'),
+                    value: 'edit_profile',
+                  ),
+                  PopupMenuItem(
+                    child: Text('Feedback'),
+                    value: 'feedback',
+                  ),
+                  PopupMenuItem(
+                    child: Text('Log out'),
+                    value: 'logout',
+                  ),
+                  PopupMenuItem(
+                    child: Text('Delete account'),
+                    value: 'delete_account',
+                  ),
+                ],
+                onSelected: (value) {
+                  if (value == 'edit_profile') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProfileSettingScreen(),
+                      ),
+                    );
+                  } else if (value == 'feedback') {
+                    _showFeedbackDialog(context);
+                  } else if (value == 'logout') {
+                    _logout();
+                  } else if (value == 'delete_account') {
+                    _deleteAccount();
+                  }
                 },
               ),
             ],
@@ -285,35 +460,56 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
                                   gridDelegate:
                                       SliverGridDelegateWithFixedCrossAxisCount(
                                     crossAxisCount: 3,
-                                    crossAxisSpacing:
-                                        0, // Atur jarak horizontal antara item
-                                    mainAxisSpacing:
-                                        0, // Atur jarak vertikal antara item
+                                    crossAxisSpacing: 0,
+                                    mainAxisSpacing: 0,
                                     childAspectRatio: 1,
                                   ),
                                   itemCount: posts.length,
                                   itemBuilder: (context, index) {
                                     var post = posts[index].data()
                                         as Map<String, dynamic>;
-                                    return Card(
-                                      // Tambahkan decoration untuk menambahkan garis grid
-                                      elevation:
-                                          0, // Hilangkan bayangan pada Card
-                                      shape: RoundedRectangleBorder(
-                                        side: BorderSide(
-                                            color: Colors.black,
-                                            width:
-                                                1), // Atur warna dan ketebalan garis
-                                        borderRadius: BorderRadius
-                                            .zero, // Atur sudut border Card
+                                    return GestureDetector(
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                PostDetailScreen(
+                                              post: posts[index],
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      child: Card(
+                                        elevation: 0,
+                                        shape: RoundedRectangleBorder(
+                                          side: BorderSide(
+                                              color: Colors.black, width: 1),
+                                        ),
+                                        child: post['imageUrls'] != null &&
+                                                post['imageUrls'].isNotEmpty
+                                            ? Image.network(
+                                                post['imageUrls'][0],
+                                                fit: BoxFit.cover,
+                                              )
+                                            : post['thumbnailUrl'] != null
+                                                ? Stack(
+                                                    children: [
+                                                      Image.network(
+                                                        post['thumbnailUrl'],
+                                                        fit: BoxFit.cover,
+                                                      ),
+                                                      Center(
+                                                        child: Icon(
+                                                          Icons.play_circle_outline,
+                                                          color: Colors.white,
+                                                          size: 50,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  )
+                                                : Container(),
                                       ),
-                                      child: post['imageUrl'] != null &&
-                                              post['imageUrl'].isNotEmpty
-                                          ? Image.network(
-                                              post['imageUrl'],
-                                              fit: BoxFit.cover,
-                                            )
-                                          : Container(), // Handle missing image
                                     );
                                   },
                                 );
@@ -345,8 +541,7 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
                                     crossAxisCount: 2,
                                     crossAxisSpacing: 8.0,
                                     mainAxisSpacing: 8.0,
-                                    childAspectRatio: 3 /
-                                        4, // Adjusted aspect ratio for better visuals
+                                    childAspectRatio: 3 / 4,
                                   ),
                                   itemCount: items.length,
                                   itemBuilder: (context, index) {
@@ -360,17 +555,16 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
                                             builder: (context) =>
                                                 MarketPlaceDetailScreen(
                                               item: items[index],
-                                              canEditDelete:
-                                                  true, // Enable edit/delete in profile
+                                              canEditDelete: true,
                                             ),
                                           ),
                                         );
                                       },
                                       child: Card(
-                                        elevation: 4, // Adding shadow
+                                        elevation: 4,
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                              15), // Rounded corners
+                                          borderRadius:
+                                              BorderRadius.circular(15),
                                         ),
                                         child: Column(
                                           crossAxisAlignment:
@@ -390,7 +584,7 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
                                                         width: double.infinity,
                                                         fit: BoxFit.cover,
                                                       )
-                                                    : Container(), // Handle missing image
+                                                    : Container(),
                                               ),
                                             ),
                                             Padding(

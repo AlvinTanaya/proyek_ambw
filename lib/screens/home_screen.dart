@@ -8,6 +8,7 @@ import 'other_user_profile_screen.dart'; // Import the OtherUserProfileScreen
 import 'story_screen.dart';
 import 'comment_page.dart';
 import 'likers_page.dart';
+import 'bookmark.dart'; // Import BookmarkScreen
 import 'package:carousel_slider/carousel_slider.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -223,7 +224,6 @@ class HomeScreen extends StatelessWidget {
     int countLikes = likes.values.where((value) => value).length;
     bool isLiked = likes[FirebaseAuth.instance.currentUser!.uid] ?? false;
 
-    // Correcting the method of accessing imageUrls with proper null safety
     List<dynamic> imageUrls = (post.data() as Map?)?.containsKey('imageUrls') ?? false
         ? List<dynamic>.from((post.data() as Map)['imageUrls'])
         : [];
@@ -339,10 +339,7 @@ class HomeScreen extends StatelessWidget {
                   // Spacer pushes the bookmark icon to the right
                   Spacer(),
                   // Bookmark icon on the right
-                  IconButton(
-                    icon: Icon(Icons.bookmark_border),
-                    onPressed: () {},
-                  ),
+                   BookmarkButton(post: post, currentUserId: currentUserId),
                 ],
               ),
               GestureDetector(
@@ -389,10 +386,7 @@ class HomeScreen extends StatelessWidget {
       },
     );
   }
-
-
 }
-
 
 void toggleLike(DocumentSnapshot post, String userId) async {
   var postRef = FirebaseFirestore.instance.collection('post').doc(post.id);
@@ -411,4 +405,74 @@ void toggleLike(DocumentSnapshot post, String userId) async {
     'likes': likes,
     'countLikes': countLikes,
   });
+}
+
+Future<List<String>> toggleBookmark(DocumentSnapshot post, String userId) async {
+  var bookmarkRef = FirebaseFirestore.instance.collection('bookmarks').doc(userId);
+
+  var snapshot = await bookmarkRef.get();
+  var data = snapshot.data() as Map<String, dynamic>? ?? {};
+  var bookmarks = List<String>.from(data['bookmarks'] ?? []);
+
+  if (bookmarks.contains(post.id)) {
+    bookmarks.remove(post.id);
+  } else {
+    bookmarks.add(post.id);
+  }
+
+  await bookmarkRef.set({'bookmarks': bookmarks, 'timestamp': FieldValue.serverTimestamp()});
+  
+  return bookmarks;
+}
+
+class BookmarkButton extends StatefulWidget {
+  final DocumentSnapshot post;
+  final String currentUserId;
+
+  BookmarkButton({required this.post, required this.currentUserId});
+
+  @override
+  _BookmarkButtonState createState() => _BookmarkButtonState();
+}
+
+class _BookmarkButtonState extends State<BookmarkButton> {
+  late bool isBookmarked;
+
+  @override
+  void initState() {
+    super.initState();
+    isBookmarked = false;
+    _checkIfBookmarked();
+  }
+
+  void _checkIfBookmarked() async {
+    var bookmarkRef = FirebaseFirestore.instance.collection('bookmarks').doc(widget.currentUserId);
+    var snapshot = await bookmarkRef.get();
+    if (snapshot.exists) {
+      var data = snapshot.data() as Map<String, dynamic>;
+      var bookmarks = List<String>.from(data['bookmarks'] ?? []);
+      if (mounted) {
+        setState(() {
+          isBookmarked = bookmarks.contains(widget.post.id);
+        });
+      }
+    }
+  }
+
+  void _toggleBookmark() async {
+    var bookmarks = await toggleBookmark(widget.post, widget.currentUserId);
+    if (mounted) {
+      setState(() {
+        isBookmarked = bookmarks.contains(widget.post.id);
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: Icon(isBookmarked ? Icons.bookmark : Icons.bookmark_border, color: isBookmarked ? Colors.black : null),
+      onPressed: _toggleBookmark,
+    );
+  }
 }

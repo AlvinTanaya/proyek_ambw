@@ -8,6 +8,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
 import 'base_screen.dart';
 import 'home_screen.dart';
+import 'package:video_thumbnail/video_thumbnail.dart';
+import 'package:path_provider/path_provider.dart';
 
 void main() {
   runApp(MaterialApp(
@@ -317,8 +319,7 @@ class _AddPostVideoScreenState extends State<AddPostVideoScreen> {
   }
 
   Future<void> _pickVideo() async {
-    final pickedFile =
-        await ImagePicker().getVideo(source: ImageSource.gallery);
+    final pickedFile = await ImagePicker().getVideo(source: ImageSource.gallery);
 
     if (pickedFile != null) {
       setState(() {
@@ -333,12 +334,37 @@ class _AddPostVideoScreenState extends State<AddPostVideoScreen> {
             _isVideoLoading = false;
             _isVideoPlaying = true;
           });
-        })
-        ..setLooping(true)
-        ..addListener(() {
-          setState(() {});
-        })
-        ..play();
+          _controller?.play();
+        });
+    }
+  }
+
+  Future<String?> _generateThumbnail(String videoPath) async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final thumbnailData = await VideoThumbnail.thumbnailData(
+        video: videoPath,
+        imageFormat: ImageFormat.PNG,
+        maxHeight: 300,
+        quality: 100,
+        timeMs: 2000, // Time in milliseconds (2 seconds)
+      );
+
+      if (thumbnailData == null) return null;
+
+      final thumbnailFile = File('${tempDir.path}/thumbnail.png');
+      await thumbnailFile.writeAsBytes(thumbnailData);
+
+      final storageRef = firebase_storage.FirebaseStorage.instance
+          .ref()
+          .child('thumbnails/${FirebaseAuth.instance.currentUser!.uid}_${DateTime.now().millisecondsSinceEpoch}.png');
+      await storageRef.putFile(thumbnailFile);
+
+      final downloadUrl = await storageRef.getDownloadURL();
+      return downloadUrl;
+    } catch (e) {
+      print('Error generating thumbnail: $e');
+      return null;
     }
   }
 
@@ -376,9 +402,11 @@ class _AddPostVideoScreenState extends State<AddPostVideoScreen> {
       final snapshot = await task.whenComplete(() {});
       final videoUrl = await snapshot.ref.getDownloadURL();
 
+      final thumbnailUrl = await _generateThumbnail(_videoFile!.path);
+      
       await FirebaseFirestore.instance.collection('post').add({
         'videoUrl': videoUrl,
-        'imageUrl': null,
+        'thumbnailUrl': thumbnailUrl,
         'userProfile': profilePicture,
         'caption': username,
         'description': _captionController.text,
@@ -424,8 +452,7 @@ class _AddPostVideoScreenState extends State<AddPostVideoScreen> {
                   child: Center(
                     child: _videoFile == null
                         ? Icon(Icons.add_a_photo, size: 50, color: Colors.grey)
-                        : _controller != null &&
-                                _controller!.value.isInitialized
+                        : _controller != null && _controller!.value.isInitialized
                             ? AspectRatio(
                                 aspectRatio: _controller!.value.aspectRatio,
                                 child: VideoPlayer(_controller!),
