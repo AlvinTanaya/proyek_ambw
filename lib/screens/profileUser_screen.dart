@@ -8,13 +8,12 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
-
-import 'base_screen.dart';
 import 'bookmark.dart';
 import 'marketplace_detail_screen.dart';
 import 'post_detail_screen.dart';
 import 'profile_setting_screen.dart';
 import 'signin_screen.dart';
+import 'privacy_and_policy.dart';
 
 class ProfileUserScreen extends StatefulWidget {
   @override
@@ -302,6 +301,10 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
                     value: 'feedback',
                   ),
                   PopupMenuItem(
+                    child: Text('Privacy and Policy'),
+                    value: 'PandP',
+                  ),
+                  PopupMenuItem(
                     child: Text('Log out'),
                     value: 'logout',
                   ),
@@ -320,6 +323,13 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
                     );
                   } else if (value == 'feedback') {
                     _showFeedbackDialog(context);
+                  } else if (value == 'PandP') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PrivacyAndPolicyScreen(),
+                      ),
+                    );
                   } else if (value == 'logout') {
                     _logout();
                   } else if (value == 'delete_account') {
@@ -646,7 +656,6 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
               ),
             ],
           ),
-          bottomNavigationBar: BaseScreen(currentIndex: 4),
         );
       },
     );

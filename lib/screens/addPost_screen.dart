@@ -9,9 +9,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:video_player/video_player.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
-
 import 'base_screen.dart';
-import 'home_screen.dart';
+
 
 void main() {
   runApp(MaterialApp(
@@ -137,7 +136,6 @@ class _ChooseUploadTypeScreenState extends State<ChooseUploadTypeScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: BaseScreen(currentIndex: 2),
     );
   }
 }
@@ -245,8 +243,13 @@ class _AddPostImageScreenState extends State<AddPostImageScreen> {
         }
       });
 
-      Navigator.pushReplacement(
-          context, MaterialPageRoute(builder: (context) => HomeScreen()));
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => BaseScreen(currentIndex: 0),
+        ),
+        (Route<dynamic> route) => false,
+      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text("Failed to upload post: $e"),
@@ -361,7 +364,7 @@ class _AddPostVideoScreenState extends State<AddPostVideoScreen> {
       final thumbnailData = await VideoThumbnail.thumbnailData(
         video: videoPath,
         imageFormat: ImageFormat.PNG,
-        maxHeight: 300,
+        maxHeight: 600,
         quality: 100,
         timeMs: 2000, // Time in milliseconds (2 seconds)
       );
@@ -429,8 +432,25 @@ class _AddPostVideoScreenState extends State<AddPostVideoScreen> {
         'userId': user.uid,
       });
 
-      Navigator.pushReplacement(
-          context, MaterialPageRoute(builder: (context) => HomeScreen()));
+      // Increment countPost field
+      DocumentReference userDocRef =
+          FirebaseFirestore.instance.collection('users').doc(user.uid);
+
+      FirebaseFirestore.instance.runTransaction((transaction) async {
+        DocumentSnapshot userDocSnapshot = await transaction.get(userDocRef);
+        if (userDocSnapshot.exists) {
+          int currentCount = userDocSnapshot['countPost'] ?? 0;
+          transaction.update(userDocRef, {'countPost': currentCount + 1});
+        }
+      });
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => BaseScreen(currentIndex: 0),
+        ),
+        (Route<dynamic> route) => false,
+      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text("Failed to upload post: $e"),

@@ -1,7 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-
-import 'base_screen.dart';
 import 'input_marketplace_screen.dart';
 import 'marketplace_detail_screen.dart';
 
@@ -409,7 +407,6 @@ class _MarketPlaceScreenState extends State<MarketPlaceScreen> {
         child: Icon(Icons.add),
         backgroundColor: Colors.blue,
       ),
-      bottomNavigationBar: BaseScreen(currentIndex: 3),
     );
   }
 }

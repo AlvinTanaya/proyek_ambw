@@ -6,8 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
-
-import 'home_screen.dart';
+import 'base_screen.dart';
 
 class AddStoryImageScreen extends StatefulWidget {
   @override
@@ -88,11 +87,16 @@ class _AddStoryImageScreenState extends State<AddStoryImageScreen> {
         'videoUrl': null,
       });
 
-      Navigator.pushReplacement(
-          context, MaterialPageRoute(builder: (context) => HomeScreen()));
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => BaseScreen(currentIndex: 0),
+        ),
+        (Route<dynamic> route) => false,
+      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text("Failed to upload story: $e"),
+        content: Text("Failed to upload stroy: $e"),
       ));
     }
   }

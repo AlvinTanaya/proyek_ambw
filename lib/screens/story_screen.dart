@@ -1,8 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
-
-import 'home_screen.dart'; // Import the HomeScreen
+import 'base_screen.dart';
 import 'other_user_profile_screen.dart'; // Import the OtherUserProfileScreen
 
 class StoryScreen extends StatefulWidget {
@@ -90,8 +89,10 @@ class _StoryScreenState extends State<StoryScreen> {
     } else {
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => HomeScreen()),
-        (route) => false,
+        MaterialPageRoute(
+          builder: (context) => BaseScreen(currentIndex: 0),
+        ),
+        (Route<dynamic> route) => false,
       );
     }
   }

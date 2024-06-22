@@ -1,8 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
-import 'base_screen.dart';
 import 'other_user_profile_screen.dart';
 
 class OtherUserScreen extends StatefulWidget {
@@ -105,7 +103,6 @@ class _OtherUserScreenState extends State<OtherUserScreen> {
             },
           ),
         ),
-        bottomNavigationBar: BaseScreen(currentIndex: 1),
       );
     } else {
       // Handle case where current user is null (not logged in)

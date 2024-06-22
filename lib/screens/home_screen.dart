@@ -3,9 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:proyek_ambw/reusable_widgets/video_widget.dart';
-
 import 'addStory_screen.dart';
-import 'base_screen.dart';
 import 'comment_page.dart';
 import 'likers_page.dart';
 import 'other_user_profile_screen.dart'; // Import the OtherUserProfileScreen
@@ -130,7 +128,6 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: BaseScreen(currentIndex: 0),
     );
   }
 
