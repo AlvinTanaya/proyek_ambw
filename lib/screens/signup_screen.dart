@@ -2,8 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:proyek_ambw/reusable_widgets/reusable_widget.dart';
-import 'package:proyek_ambw/screens/home_screen.dart';
-import 'package:proyek_ambw/utils/color_utils.dart';
+import 'base_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({Key? key}) : super(key: key);
@@ -69,7 +68,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => HomeScreen()),
+        MaterialPageRoute(
+          builder: (context) => BaseScreen(currentIndex: 0),
+        ),
       );
     } on FirebaseAuthException catch (e) {
       String message = 'Failed to register';
@@ -89,77 +90,90 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.black,
         elevation: 0,
-        title: const Text(
-          "Sign Up",
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.white,),
+          onPressed: () {
+            Navigator.pop(context);
+          },
         ),
       ),
-      body: Container(
-        width: MediaQuery.of(context).size.width,
-        height: MediaQuery.of(context).size.height,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              hexStringToColor("CB2B93"),
-              hexStringToColor("9546C4"),
-              hexStringToColor("5E61F4")
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(20, 20, 20, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              Text(
+                'FansFavorite.',
+                style: TextStyle(
+                    fontSize: 40,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white),
+              ),
+              const SizedBox(height: 20),
+              reusableTextField(
+                "Enter UserName",
+                Icons.person_outline,
+                false,
+                _userNameTextController,
+              ),
+              const SizedBox(height: 20),
+              reusableTextField(
+                "Enter Full Name",
+                Icons.person_outline,
+                false,
+                _fullNameTextController,
+              ),
+              const SizedBox(height: 20),
+              reusableTextField(
+                "Enter Email Id",
+                Icons.email_outlined,
+                false,
+                _emailTextController,
+              ),
+              const SizedBox(height: 20),
+              reusableTextField(
+                "Enter Password",
+                Icons.lock_outlined,
+                true,
+                _passwordTextController,
+              ),
+              const SizedBox(height: 20),
+              reusableTextField(
+                "Enter Phone Number",
+                Icons.phone_outlined,
+                false,
+                _phoneNumberTextController,
+              ),
+              const SizedBox(height: 20),
+              _buildGenderField(),
+              const SizedBox(height: 20),
+              _buildBirthDateField(),
+              const SizedBox(height: 20),
+              Container(
+                width: double.infinity, // Make the button as wide as the form fields
+                child: ElevatedButton(
+                  onPressed: _register,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    padding: EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text(
+                    "Sign Up",
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
             ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(20, 120, 20, 0),
-            child: Column(
-              children: <Widget>[
-                const SizedBox(height: 20),
-                reusableTextField(
-                  "Enter UserName",
-                  Icons.person_outline,
-                  false,
-                  _userNameTextController,
-                ),
-                const SizedBox(height: 20),
-                reusableTextField(
-                  "Enter Full Name",
-                  Icons.person_outline,
-                  false,
-                  _fullNameTextController,
-                ),
-                const SizedBox(height: 20),
-                reusableTextField(
-                  "Enter Email Id",
-                  Icons.email_outlined,
-                  false,
-                  _emailTextController,
-                ),
-                const SizedBox(height: 20),
-                reusableTextField(
-                  "Enter Password",
-                  Icons.lock_outlined,
-                  true,
-                  _passwordTextController,
-                ),
-                const SizedBox(height: 20),
-                reusableTextField(
-                  "Enter Phone Number",
-                  Icons.phone_outlined,
-                  false,
-                  _phoneNumberTextController,
-                ),
-                const SizedBox(height: 20),
-                _buildGenderField(),
-                const SizedBox(height: 20),
-                _buildBirthDateField(),
-                const SizedBox(height: 20),
-                firebaseUIButton(context, "Sign Up", _register)
-              ],
-            ),
           ),
         ),
       ),
@@ -183,7 +197,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           'Select Gender',
           style: TextStyle(color: Colors.white),
         ),
-        dropdownColor: Colors.deepPurple.shade400,
+        dropdownColor: Colors.black,
         items: ['Male', 'Female']
             .map((gender) => DropdownMenuItem<String>(
                   value: gender,
