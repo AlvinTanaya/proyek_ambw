@@ -4,13 +4,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:video_thumbnail/video_thumbnail.dart';
 
 import 'base_screen.dart';
+import 'bookmark.dart';
 import 'marketplace_detail_screen.dart';
 import 'post_detail_screen.dart';
 import 'profile_setting_screen.dart';
-import 'signin_screen.dart'; // Import halaman SignInScreen jika belum diimpor
+import 'signin_screen.dart';
 
 class ProfileUserScreen extends StatefulWidget {
   @override
@@ -25,6 +29,7 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
   late User currentUser;
   late Future<Map<String, dynamic>> profileData;
   File? _imageFile;
+  Uint8List? _thumbnailData;
 
   @override
   void initState() {
@@ -79,6 +84,7 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
     QuerySnapshot querySnapshot = await _firestore
         .collection('marketplace')
         .where('userId', isEqualTo: userId)
+        .orderBy('timestamp', descending: true) // Order by timestamp
         .get();
     return querySnapshot.docs;
   }
@@ -87,6 +93,7 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
     QuerySnapshot querySnapshot = await _firestore
         .collection('post')
         .where('userId', isEqualTo: userId)
+        .orderBy('timestamp', descending: true) // Order by timestamp
         .get();
     return querySnapshot.docs;
   }
@@ -95,12 +102,13 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
     QuerySnapshot querySnapshot = await _firestore
         .collection('post')
         .where('userId', isEqualTo: userId)
+        .orderBy('timestamp', descending: true) // Order by timestamp
         .get();
 
     int imageCount = 0;
     querySnapshot.docs.forEach((doc) {
       Map<String, dynamic> postData = doc.data() as Map<String, dynamic>;
-      if (postData['imageUrl'] != null && postData['imageUrl'].isNotEmpty) {
+      if (postData['imageUrls'] != null && postData['imageUrls'].isNotEmpty) {
         imageCount++;
       }
     });
@@ -146,18 +154,14 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
             ElevatedButton(
               child: Text('Submit'),
               onPressed: () async {
-                // Handle submit logic here, e.g., send feedback to server or process locally
                 String feedbackText = _feedback;
-                // Simulate a delay for demonstration purposes (replace with actual logic)
                 await Future.delayed(Duration(seconds: 1));
-                // Show notification
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     backgroundColor: Colors.green,
                     content: Text('Feedback submitted successfully!'),
                   ),
                 );
-                // Close the feedback dialog
                 Navigator.of(context).pop();
               },
             ),
@@ -165,6 +169,62 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
         );
       },
     );
+  }
+
+  Future<String?> _generateThumbnail(String videoUrl) async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      print("Temporary Directory: ${tempDir.path}");
+      final thumbnailData = await VideoThumbnail.thumbnailData(
+        video: videoUrl,
+        imageFormat: ImageFormat.PNG,
+        maxHeight: 300,
+        quality: 100,
+        timeMs: 2000,
+      );
+
+      if (thumbnailData == null) {
+        print("Thumbnail data is null");
+        return null;
+      }
+
+      print("Thumbnail data generated successfully");
+
+      final thumbnailFile = File('${tempDir.path}/thumbnail.png');
+      await thumbnailFile.writeAsBytes(thumbnailData);
+
+      final storageRef = _storage.ref().child(
+          'thumbnails/${currentUser.uid}_${DateTime.now().millisecondsSinceEpoch}.png');
+      await storageRef.putFile(thumbnailFile);
+
+      final downloadUrl = await storageRef.getDownloadURL();
+      print("Thumbnail Download URL: $downloadUrl");
+      return downloadUrl;
+    } catch (e) {
+      print('Error generating thumbnail: $e');
+      return null;
+    }
+  }
+
+  Future<void> _uploadVideoWithThumbnail(
+      String videoUrl, String description) async {
+    try {
+      final thumbnailUrl = await _generateThumbnail(videoUrl);
+
+      if (thumbnailUrl == null) {
+        throw Exception('Failed to generate thumbnail');
+      }
+
+      await _firestore.collection('post').add({
+        'videoUrl': videoUrl,
+        'thumbnailUrl': thumbnailUrl,
+        'userId': currentUser.uid,
+        'description': description,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      print('Error uploading video with thumbnail: $e');
+    }
   }
 
   void _logout() async {
@@ -218,14 +278,17 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
         return Scaffold(
           appBar: AppBar(
             backgroundColor: Colors.white,
-            automaticallyImplyLeading: false, // Remove the back arrow
+            automaticallyImplyLeading: false,
             title: Text(profileData['username'],
                 style: TextStyle(color: Colors.black)),
             actions: [
               IconButton(
                 icon: Icon(Icons.bookmark, color: Colors.black),
                 onPressed: () {
-                  // Handle bookmark action
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => BookmarkScreen()),
+                  );
                 },
               ),
               PopupMenuButton(
@@ -425,13 +488,30 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
                                           side: BorderSide(
                                               color: Colors.black, width: 1),
                                         ),
-                                        child: post['imageUrl'] != null &&
-                                                post['imageUrl'].isNotEmpty
+                                        child: post['imageUrls'] != null &&
+                                                post['imageUrls'].isNotEmpty
                                             ? Image.network(
-                                                post['imageUrl'],
+                                                post['imageUrls'][0],
                                                 fit: BoxFit.cover,
                                               )
-                                            : Container(),
+                                            : post['thumbnailUrl'] != null
+                                                ? Stack(
+                                                    children: [
+                                                      Image.network(
+                                                        post['thumbnailUrl'],
+                                                        fit: BoxFit.cover,
+                                                      ),
+                                                      Center(
+                                                        child: Icon(
+                                                          Icons
+                                                              .play_circle_outline,
+                                                          color: Colors.white,
+                                                          size: 50,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  )
+                                                : Container(),
                                       ),
                                     );
                                   },
