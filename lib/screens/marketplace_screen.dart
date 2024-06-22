@@ -395,17 +395,20 @@ class _MarketPlaceScreenState extends State<MarketPlaceScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => InputMarketPlaceScreen(),
-            ),
-          );
-        },
-        child: Icon(Icons.add),
-        backgroundColor: Colors.blue,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 60.0), // Adjust the value as needed
+        child: FloatingActionButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => InputMarketPlaceScreen(),
+              ),
+            );
+          },
+          child: Icon(Icons.add),
+          backgroundColor: Colors.blue,
+        ),
       ),
     );
   }
