@@ -2,7 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'base_screen.dart';
-import 'other_user_profile_screen.dart'; // Import the OtherUserProfileScreen
+import 'other_user_profile_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class StoryScreen extends StatefulWidget {
   final List<DocumentSnapshot> stories;
@@ -27,11 +28,14 @@ class _StoryScreenState extends State<StoryScreen> {
   bool _isNextUser = false;
   VideoPlayerController? _videoController;
   late Duration _storyDuration;
+  String currentUserId = FirebaseAuth.instance.currentUser!.uid;
 
   @override
   void initState() {
     super.initState();
-    _initializeStory(widget.stories[_currentIndex]);
+    if (widget.stories.isNotEmpty) {
+      _initializeStory(widget.stories[_currentIndex]);
+    }
   }
 
   void _startAutoPlay() {
@@ -44,15 +48,15 @@ class _StoryScreenState extends State<StoryScreen> {
   }
 
   void _onPageChanged(int index) {
-    setState(() {
-      _currentIndex = index;
-      _isNextUser = _currentIndex >= widget.stories.length;
-    });
-    _disposeVideoController();
-    if (!_isNextUser) {
-      _initializeStory(widget.stories[index]);
-    } else {
+    if (index >= widget.stories.length) {
       _showNextUserStories();
+    } else {
+      setState(() {
+        _currentIndex = index;
+        _isNextUser = false;
+      });
+      _disposeVideoController();
+      _initializeStory(widget.stories[index]);
     }
   }
 
@@ -158,6 +162,37 @@ class _StoryScreenState extends State<StoryScreen> {
     );
   }
 
+  void _deleteStory(DocumentSnapshot story) async {
+    if (story.exists) {
+      try {
+        await FirebaseFirestore.instance.collection('story').doc(story.id).delete();
+        print("Story deleted successfully.");
+
+        if (mounted) {
+          setState(() {
+            widget.stories.remove(story);
+            if (_currentIndex >= widget.stories.length) {
+              _currentIndex = widget.stories.length - 1; // Adjust current index if necessary
+            }
+            if (widget.stories.isEmpty) {
+              Navigator.pop(context); // If no stories left, exit the screen
+            } else {
+              _initializeStory(widget.stories[_currentIndex]); // Initialize the next story
+            }
+          });
+        }
+      } catch (e) {
+        print("Error deleting story: $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to delete story: $e"))
+        );
+      }
+    } else {
+      print("Story document does not exist.");
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -165,39 +200,47 @@ class _StoryScreenState extends State<StoryScreen> {
         onTapDown: (details) => _handleTap(),
         child: Stack(
           children: [
-            PageView.builder(
-              controller: _pageController,
-              itemCount: widget.stories.length + 1,
-              onPageChanged: _onPageChanged,
-              itemBuilder: (context, index) {
-                if (index < widget.stories.length) {
-                  var story = widget.stories[index];
-                  var imageUrl = story['imageUrl'];
-                  var videoUrl = story['videoUrl'];
-                  if (imageUrl != null) {
-                    return Image.network(
-                      imageUrl,
-                      fit: BoxFit.cover,
-                    );
-                  } else if (videoUrl != null) {
-                    return _videoController != null &&
-                            _videoController!.value.isInitialized
-                        ? FittedBox(
-                            fit: BoxFit.cover,
-                            child: SizedBox(
-                              width: _videoController!.value.size.width,
-                              height: _videoController!.value.size.height,
-                              child: VideoPlayer(_videoController!),
-                            ),
-                          )
-                        : Center(child: CircularProgressIndicator());
+            if (widget.stories.isNotEmpty)
+              PageView.builder(
+                controller: _pageController,
+                itemCount: widget.stories.length + 1,
+                onPageChanged: _onPageChanged,
+                itemBuilder: (context, index) {
+                  if (index < widget.stories.length) {
+                    var story = widget.stories[index];
+                    var imageUrl = story['imageUrl'];
+                    var videoUrl = story['videoUrl'];
+                    if (imageUrl != null) {
+                      return Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                      );
+                    } else if (videoUrl != null) {
+                      return _videoController != null &&
+                              _videoController!.value.isInitialized
+                          ? FittedBox(
+                              fit: BoxFit.cover,
+                              child: SizedBox(
+                                width: _videoController!.value.size.width,
+                                height: _videoController!.value.size.height,
+                                child: VideoPlayer(_videoController!),
+                              ),
+                            )
+                          : Center(child: CircularProgressIndicator());
+                    }
+                  } else {
+                    return Container(color: Colors.black);
                   }
-                } else {
-                  return Container(color: Colors.black);
-                }
-                return Container();
-              },
-            ),
+                  return Container();
+                },
+              )
+            else
+              Center(
+                child: Text(
+                  'No stories available',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
             Positioned(
               top: 40,
               left: 10,
@@ -205,25 +248,47 @@ class _StoryScreenState extends State<StoryScreen> {
               child: Column(
                 children: [
                   LinearProgressIndicator(
-                    value: (_currentIndex + 1) / widget.stories.length,
+                    value: (_currentIndex + 1) / (widget.stories.length > 0 ? widget.stories.length : 1),
                     backgroundColor: Colors.black26,
                     valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                   ),
                   SizedBox(height: 8),
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      CircleAvatar(
-                        backgroundImage: NetworkImage(widget.profilePicture),
-                        radius: 15,
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            backgroundImage: NetworkImage(widget.profilePicture),
+                            radius: 15,
+                          ),
+                          SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () => _navigateToUserProfile(context),
+                            child: Text(
+                              widget.username,
+                              style: TextStyle(color: Colors.white, fontSize: 20),
+                            ),
+                          ),
+                        ],
                       ),
-                      SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: () => _navigateToUserProfile(context),
-                        child: Text(
-                          widget.username,
-                          style: TextStyle(color: Colors.white, fontSize: 20),
-                        ),
-                      ),
+                      if (widget.stories.isNotEmpty &&
+                          widget.stories[_currentIndex]['userId'] == currentUserId)
+                      PopupMenuButton<String>(
+                        onSelected: (String choice) {
+                          if (choice == 'Delete') {
+                            _deleteStory(widget.stories[_currentIndex]);
+                          }
+                        },
+                        itemBuilder: (BuildContext context) {
+                          return {'Delete'}.map((String choice) {
+                            return PopupMenuItem<String>(
+                              value: choice,
+                              child: Text(choice),
+                            );
+                          }).toList();
+                        },
+                      )
                     ],
                   ),
                 ],
