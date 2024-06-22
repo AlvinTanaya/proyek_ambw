@@ -61,8 +61,8 @@ class _BaseScreenState extends State<BaseScreen> {
             child: BottomNavigationBar(
               currentIndex: _currentIndex,
               onTap: _onTabTapped,
-              selectedItemColor: Colors.purple,
-              unselectedItemColor: Colors.black,
+              selectedItemColor: Colors.black,
+              unselectedItemColor: Colors.grey,
               showUnselectedLabels: true,
               items: const [
                 BottomNavigationBarItem(
