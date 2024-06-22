@@ -407,21 +407,26 @@ void toggleLike(DocumentSnapshot post, String userId) async {
   });
 }
 
-Future<List<String>> toggleBookmark(DocumentSnapshot post, String userId) async {
+Future<List<Map<String, dynamic>>> toggleBookmark(DocumentSnapshot post, String userId) async {
   var bookmarkRef = FirebaseFirestore.instance.collection('bookmarks').doc(userId);
 
   var snapshot = await bookmarkRef.get();
   var data = snapshot.data() as Map<String, dynamic>? ?? {};
-  var bookmarks = List<String>.from(data['bookmarks'] ?? []);
+  var bookmarks = List<Map<String, dynamic>>.from(data['bookmarks'] ?? []);
 
-  if (bookmarks.contains(post.id)) {
-    bookmarks.remove(post.id);
+  var postId = post.id;
+  var ownerId = post['userId'];
+
+  var bookmark = {'postId': postId, 'ownerId': ownerId};
+
+  if (bookmarks.any((b) => b['postId'] == postId)) {
+    bookmarks.removeWhere((b) => b['postId'] == postId);
   } else {
-    bookmarks.add(post.id);
+    bookmarks.add(bookmark);
   }
 
   await bookmarkRef.set({'bookmarks': bookmarks, 'timestamp': FieldValue.serverTimestamp()});
-  
+
   return bookmarks;
 }
 
@@ -450,10 +455,10 @@ class _BookmarkButtonState extends State<BookmarkButton> {
     var snapshot = await bookmarkRef.get();
     if (snapshot.exists) {
       var data = snapshot.data() as Map<String, dynamic>;
-      var bookmarks = List<String>.from(data['bookmarks'] ?? []);
+      var bookmarks = List<Map<String, dynamic>>.from(data['bookmarks'] ?? []);
       if (mounted) {
         setState(() {
-          isBookmarked = bookmarks.contains(widget.post.id);
+          isBookmarked = bookmarks.any((b) => b['postId'] == widget.post.id);
         });
       }
     }
@@ -463,7 +468,7 @@ class _BookmarkButtonState extends State<BookmarkButton> {
     var bookmarks = await toggleBookmark(widget.post, widget.currentUserId);
     if (mounted) {
       setState(() {
-        isBookmarked = bookmarks.contains(widget.post.id);
+        isBookmarked = bookmarks.any((b) => b['postId'] == widget.post.id);
       });
     }
   }

@@ -26,12 +26,14 @@ class BookmarkScreen extends StatelessWidget {
             return Center(child: Text('No bookmarks found'));
           }
 
-          List<String> bookmarks = List<String>.from(snapshot.data!['bookmarks'] ?? []);
+          List<Map<String, dynamic>> bookmarks = List<Map<String, dynamic>>.from(snapshot.data!['bookmarks'] ?? []);
           return ListView.builder(
             itemCount: bookmarks.length,
             itemBuilder: (context, index) {
+              String postId = bookmarks[index]['postId'];
+
               return FutureBuilder<DocumentSnapshot>(
-                future: FirebaseFirestore.instance.collection('post').doc(bookmarks[index]).get(),
+                future: FirebaseFirestore.instance.collection('post').doc(postId).get(),
                 builder: (context, postSnapshot) {
                   if (postSnapshot.connectionState == ConnectionState.waiting) {
                     return ListTile(title: Text('Loading...'));
@@ -50,7 +52,7 @@ class BookmarkScreen extends StatelessWidget {
                         ? Image.network(postData['imageUrls'][0], width: 50, height: 50, fit: BoxFit.cover)
                         : Icon(Icons.image),
                     title: Text(postData['description'] ?? 'No description'),
-                    subtitle: Text(postData['username'] ?? 'Unknown user'),
+                    subtitle: Text(bookmarks[index]['ownerId'] ?? 'Unknown user'),
                     onTap: () {
                       // Navigate to post detail page
                     },
