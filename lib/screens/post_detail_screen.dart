@@ -1,15 +1,9 @@
-import 'dart:io';
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'base_screen.dart';
-import 'marketplace_detail_screen.dart';
-import 'package:carousel_slider/carousel_slider.dart';
-import 'profileUser_screen.dart';
-import 'home_screen.dart';
 import 'package:proyek_ambw/reusable_widgets/video_widget.dart';
+
 import 'comment_page.dart';
 
 class PostDetailScreen extends StatefulWidget {
@@ -88,7 +82,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       builder: (context) {
         return AlertDialog(
           title: Text('Delete Post'),
-          content: Text('Are you sure you want to delete this post? This action cannot be undone.'),
+          content: Text(
+              'Are you sure you want to delete this post? This action cannot be undone.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -104,7 +99,24 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     );
 
     if (confirmed) {
-      await FirebaseFirestore.instance.collection('post').doc(widget.post.id).delete();
+      // Decrement countPost field in users collection
+      DocumentReference userDocRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(postData['userId']);
+
+      FirebaseFirestore.instance.runTransaction((transaction) async {
+        DocumentSnapshot userDocSnapshot = await transaction.get(userDocRef);
+        if (userDocSnapshot.exists) {
+          int currentCount = userDocSnapshot['countPost'] ?? 0;
+          transaction.update(userDocRef, {'countPost': currentCount - 1});
+        }
+      });
+
+      // Delete the post
+      await FirebaseFirestore.instance
+          .collection('post')
+          .doc(widget.post.id)
+          .delete();
       Navigator.pop(context); // Return to the previous screen
     }
   }
@@ -120,7 +132,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       isLiked = !isLiked;
     });
 
-    var postRef = FirebaseFirestore.instance.collection('post').doc(widget.post.id);
+    var postRef =
+        FirebaseFirestore.instance.collection('post').doc(widget.post.id);
     postRef.update({
       'likes': likes,
       'countLikes': countLikes,
@@ -202,7 +215,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                           enableInfiniteScroll: false,
                           autoPlay: false,
                           disableCenter: true,
-                          scrollPhysics: imageUrls.length == 1 ? NeverScrollableScrollPhysics() : null,
+                          scrollPhysics: imageUrls.length == 1
+                              ? NeverScrollableScrollPhysics()
+                              : null,
                         ),
                         items: imageUrls.map((url) {
                           return Builder(
@@ -229,7 +244,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                             return Container(
                               width: 8.0,
                               height: 8.0,
-                              margin: EdgeInsets.symmetric(vertical: 10.0, horizontal: 2.0),
+                              margin: EdgeInsets.symmetric(
+                                  vertical: 10.0, horizontal: 2.0),
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: Colors.grey,
@@ -242,18 +258,20 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 if (postData['videoUrl'] != null)
                   AspectRatio(
                     aspectRatio: 16 / 9,
-                    child: VideoPlayerWidget(url: postData['videoUrl'] as String),
+                    child:
+                        VideoPlayerWidget(url: postData['videoUrl'] as String),
                   ),
                 if (imageUrls.isEmpty && postData['videoUrl'] == null)
                   Text('No media available'),
                 SizedBox(height: 8),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: 
-                  Row(
+                  child: Row(
                     children: <Widget>[
                       IconButton(
-                        icon: Icon(isLiked ? Icons.favorite : Icons.favorite_border, color: isLiked ? Colors.red : null),
+                        icon: Icon(
+                            isLiked ? Icons.favorite : Icons.favorite_border,
+                            color: isLiked ? Colors.red : null),
                         onPressed: toggleLike,
                       ),
                       IconButton(
@@ -262,7 +280,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => CommentPage(postId: widget.post.id),
+                              builder: (context) =>
+                                  CommentPage(postId: widget.post.id),
                             ),
                           );
                         },
@@ -271,7 +290,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
                   child: Text(
                     'Liked by $countLikes fans',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -284,7 +304,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     children: [
                       Text(
                         userData['username'] ?? 'Unknown User',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       SizedBox(width: 8),
                       Expanded(
@@ -297,7 +318,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
                 ),
                 // Placeholder for comments section
                 Padding(
@@ -312,7 +334,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                           children: [
                             CircleAvatar(
                               radius: 16,
-                              backgroundImage: NetworkImage(userData['profilePicture'] ?? ''),
+                              backgroundImage: NetworkImage(
+                                  userData['profilePicture'] ?? ''),
                             ),
                             SizedBox(width: 8),
                             Expanded(
@@ -321,7 +344,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                 children: [
                                   Text(
                                     userData['username'] ?? 'Unknown User',
-                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16),
                                   ),
                                   Text(
                                     'Great post!',

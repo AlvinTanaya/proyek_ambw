@@ -44,10 +44,28 @@ class MarketPlaceDetailScreen extends StatelessWidget {
 
   void _deleteItem(BuildContext context) async {
     try {
+      // Get the userId of the item to delete
+      String userId = item['userId'];
+
+      // Delete the item from the marketplace collection
       await FirebaseFirestore.instance
           .collection('marketplace')
           .doc(item.id)
           .delete();
+
+      // Decrement the countMarketplace field in the user's document
+      DocumentReference userDocRef =
+          FirebaseFirestore.instance.collection('users').doc(userId);
+
+      FirebaseFirestore.instance.runTransaction((transaction) async {
+        DocumentSnapshot userDocSnapshot = await transaction.get(userDocRef);
+        if (userDocSnapshot.exists) {
+          int currentCount = userDocSnapshot['countMarketplace'] ?? 0;
+          transaction
+              .update(userDocRef, {'countMarketplace': currentCount - 1});
+        }
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Item deleted successfully')),
       );
@@ -75,7 +93,6 @@ class MarketPlaceDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        // Removed the title
         actions: canEditDelete
             ? [
                 IconButton(
@@ -119,7 +136,6 @@ class MarketPlaceDetailScreen extends StatelessWidget {
                     );
                   }).toList(),
                 ),
-                
                 Positioned(
                   bottom: 10,
                   left: 0,
@@ -170,12 +186,11 @@ class MarketPlaceDetailScreen extends StatelessWidget {
                     child: GestureDetector(
                       onTap: () => _contactSeller(context),
                       child: SizedBox(
-                        width: double
-                            .infinity, // Make the button span the full width
+                        width: double.infinity,
                         child: Container(
                           padding: EdgeInsets.symmetric(
                             vertical: 10,
-                            horizontal: 0, // No horizontal padding
+                            horizontal: 0,
                           ),
                           decoration: BoxDecoration(
                             color: Colors.green,
@@ -183,8 +198,7 @@ class MarketPlaceDetailScreen extends StatelessWidget {
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
-                            mainAxisAlignment:
-                                MainAxisAlignment.center, // Center the content
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Image.asset(
                                 'assets/images/WhatsApp_icon.png',

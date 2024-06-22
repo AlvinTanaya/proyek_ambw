@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import 'marketplace_detail_screen.dart';
+import 'post_detail_screen.dart';
 
 class OtherUserProfileScreen extends StatefulWidget {
   final String userId;
@@ -15,6 +16,8 @@ class OtherUserProfileScreen extends StatefulWidget {
 
 class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
   late Future<Map<String, dynamic>> profileData;
   bool _isLinked = false;
 
@@ -40,6 +43,15 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
     return querySnapshot.docs;
   }
 
+  Future<List<DocumentSnapshot>> _fetchUserPosts(String userId) async {
+    QuerySnapshot querySnapshot = await _firestore
+        .collection('post')
+        .where('userId', isEqualTo: userId)
+        .orderBy('timestamp', descending: true)
+        .get();
+    return querySnapshot.docs;
+  }
+
   int _countLinked(List<dynamic> linked) {
     return linked.length;
   }
@@ -59,11 +71,9 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
   }
 
   Future<void> _linkUser() async {
-    // Get the current user's ID
     final currentUserID = FirebaseAuth.instance.currentUser!.uid;
 
     if (_isLinked) {
-      // If already linked, unlink the users
       await FirebaseFirestore.instance
           .collection('users')
           .doc(currentUserID)
@@ -71,7 +81,6 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
         'linked': FieldValue.arrayRemove([widget.userId]),
       });
     } else {
-      // If not linked, link the users
       await FirebaseFirestore.instance
           .collection('users')
           .doc(currentUserID)
@@ -81,7 +90,6 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
     }
 
     setState(() {
-      // Toggle the linked state
       _isLinked = !_isLinked;
     });
   }
@@ -117,57 +125,97 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
               profileData['username'],
               style: TextStyle(color: Colors.black),
             ),
+            actions: [
+              Padding(
+                padding: EdgeInsets.only(right: 16),
+                child: ElevatedButton(
+                  onPressed: _linkUser,
+                  child: Text(
+                    _isLinked ? 'Linked' : 'Link',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    primary: Colors.blue,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  ),
+                ),
+              ),
+            ],
           ),
           body: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 40,
-                      backgroundColor: Colors.grey.shade200,
-                      backgroundImage: profileData['profilePicture'] != null &&
-                              profileData['profilePicture'].isNotEmpty
-                          ? NetworkImage(profileData['profilePicture'])
-                          : null,
-                      child: profileData['profilePicture'] == null ||
-                              profileData['profilePicture'].isEmpty
-                          ? Icon(Icons.person, color: Colors.grey)
-                          : null,
-                    ),
-                    SizedBox(width: 16),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(profileData['fullName'],
-                            style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold)),
-                        SizedBox(height: 4),
-                        Text(profileData['bio'] ?? 'No bio available'),
-                        SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Text(
-                              'Posts: ${profileData['countPost']}',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            SizedBox(width: 16),
-                            ElevatedButton(
-                              onPressed:
-                                  _linkUser, // Call _linkUser function when the button is pressed
-                              child: Text(_isLinked ? 'Linked' : 'Link'),
-                            ),
-                          ],
-                        ),
-                        Text(
-                            'Items Sold: ${profileData['countMarketplace']}'), // Ensure this field exists in Firestore
-                        Text(
-                            'Linked: ${_countLinked(profileData['linked'] ?? [])}'), // Ensure this field exists in Firestore
-                      ],
-                    ),
-                  ],
-                ),
+              SizedBox(height: 20),
+              CircleAvatar(
+                radius: 50,
+                backgroundColor: Colors.grey.shade200,
+                backgroundImage: profileData['profilePicture'] != null &&
+                        profileData['profilePicture'].isNotEmpty
+                    ? NetworkImage(profileData['profilePicture'])
+                    : null,
+                child: profileData['profilePicture'] == null ||
+                        profileData['profilePicture'].isEmpty
+                    ? Icon(Icons.person, color: Colors.grey, size: 80)
+                    : null,
+              ),
+              SizedBox(height: 20),
+              Text(
+                profileData['fullName'],
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 4),
+              Text(
+                profileData['bio'] ?? 'No bio available',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Column(
+                    children: [
+                      Text(
+                        profileData['countPost'].toString(),
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'posts',
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    children: [
+                      Text(
+                        profileData['countMarketplace'].toString(),
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'items',
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    children: [
+                      Text(
+                        _countLinked(profileData['linked'] ?? []).toString(),
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'linked',
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ],
               ),
               Expanded(
                 child: DefaultTabController(
@@ -185,9 +233,83 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                       Expanded(
                         child: TabBarView(
                           children: [
-                            Center(
-                                child: Text(
-                                    'No Posts')), // Placeholder for posts page
+                            FutureBuilder<List<DocumentSnapshot>>(
+                              future: _fetchUserPosts(userId),
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return Center(
+                                      child: CircularProgressIndicator());
+                                }
+                                if (snapshot.hasError) {
+                                  return Center(
+                                      child: Text('Error: ${snapshot.error}'));
+                                }
+                                if (!snapshot.hasData ||
+                                    snapshot.data!.isEmpty) {
+                                  return Center(
+                                      child: Text('No posts available'));
+                                }
+
+                                var posts = snapshot.data!;
+                                return GridView.builder(
+                                  padding: const EdgeInsets.all(8.0),
+                                  gridDelegate:
+                                      SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 3,
+                                    crossAxisSpacing: 8.0,
+                                    mainAxisSpacing: 8.0,
+                                    childAspectRatio: 1,
+                                  ),
+                                  itemCount: posts.length,
+                                  itemBuilder: (context, index) {
+                                    var post = posts[index].data()
+                                        as Map<String, dynamic>;
+                                    return GestureDetector(
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                PostDetailScreen(
+                                                    post: posts[index]),
+                                          ),
+                                        );
+                                      },
+                                      child: Card(
+                                        elevation: 0,
+                                        shape: RoundedRectangleBorder(
+                                          side: BorderSide(
+                                              color: Colors.black, width: 1),
+                                        ),
+                                        child: post['imageUrls'] != null &&
+                                                post['imageUrls'].isNotEmpty
+                                            ? Image.network(
+                                                post['imageUrls'][0],
+                                                fit: BoxFit.cover)
+                                            : post['thumbnailUrl'] != null
+                                                ? Stack(
+                                                    children: [
+                                                      Image.network(
+                                                          post['thumbnailUrl'],
+                                                          fit: BoxFit.cover),
+                                                      Center(
+                                                        child: Icon(
+                                                          Icons
+                                                              .play_circle_outline,
+                                                          color: Colors.white,
+                                                          size: 50,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  )
+                                                : Container(),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                            ),
                             FutureBuilder<List<DocumentSnapshot>>(
                               future: _fetchUserMarketplaceItems(userId),
                               builder: (context, snapshot) {
@@ -214,7 +336,7 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                                     crossAxisCount: 2,
                                     crossAxisSpacing: 8.0,
                                     mainAxisSpacing: 8.0,
-                                    childAspectRatio: 3 / 2,
+                                    childAspectRatio: 3 / 4,
                                   ),
                                   itemCount: items.length,
                                   itemBuilder: (context, index) {
@@ -234,38 +356,64 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                                         );
                                       },
                                       child: Card(
+                                        elevation: 4,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(15),
+                                        ),
                                         child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Expanded(
-                                              child: item['images'] != null &&
-                                                      item['images'].isNotEmpty
-                                                  ? Image.network(
-                                                      item['images'][0],
-                                                      fit: BoxFit.cover,
-                                                    )
-                                                  : Container(), // Handle missing image
+                                              child: ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.vertical(
+                                                        top: Radius.circular(
+                                                            15)),
+                                                child: item['images'] != null &&
+                                                        item['images']
+                                                            .isNotEmpty
+                                                    ? Image.network(
+                                                        item['images'][0],
+                                                        width: double.infinity,
+                                                        fit: BoxFit.cover)
+                                                    : Container(),
+                                              ),
                                             ),
                                             Padding(
-                                              padding: const EdgeInsets.all(8),
+                                              padding:
+                                                  const EdgeInsets.all(8.0),
                                               child: Column(
                                                 crossAxisAlignment:
                                                     CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
-                                                    item['price']?.toString() ??
-                                                        'N/A',
+                                                    item['name'] ?? 'No Name',
                                                     style: TextStyle(
+                                                        fontSize: 16,
                                                         fontWeight:
                                                             FontWeight.bold),
                                                   ),
-                                                  Text(item['name'] ??
-                                                      'No Name'),
-                                                  Text(
-                                                    item['userName'] ??
-                                                        'Unknown User',
-                                                    style: TextStyle(
-                                                        color: Colors.grey),
+                                                  SizedBox(height: 4),
+                                                  Row(
+                                                    children: [
+                                                      Icon(Icons.attach_money,
+                                                          color: Colors.green,
+                                                          size: 16),
+                                                      SizedBox(width: 4),
+                                                      Text(
+                                                        item['price']
+                                                                ?.toString() ??
+                                                            'N/A',
+                                                        style: TextStyle(
+                                                            fontSize: 14,
+                                                            color:
+                                                                Colors.green),
+                                                      ),
+                                                    ],
                                                   ),
+                                                  SizedBox(height: 4)
                                                 ],
                                               ),
                                             ),

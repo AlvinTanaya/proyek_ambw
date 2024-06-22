@@ -1,15 +1,15 @@
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:proyek_ambw/reusable_widgets/video_widget.dart';
+
 import 'addStory_screen.dart';
 import 'base_screen.dart';
-import 'other_user_profile_screen.dart'; // Import the OtherUserProfileScreen
-import 'story_screen.dart';
 import 'comment_page.dart';
 import 'likers_page.dart';
-import 'bookmark.dart'; // Import BookmarkScreen
-import 'package:carousel_slider/carousel_slider.dart';
+import 'other_user_profile_screen.dart'; // Import the OtherUserProfileScreen
+import 'story_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -218,24 +218,31 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPostCard(DocumentSnapshot post, BuildContext context, String currentUserId) {
+  Widget _buildPostCard(
+      DocumentSnapshot post, BuildContext context, String currentUserId) {
     String userId = post['userId'] as String;
-    Map<String, bool> likes = (post.data() as Map)['likes']?.cast<String, bool>() ?? {};
+    Map<String, bool> likes =
+        (post.data() as Map)['likes']?.cast<String, bool>() ?? {};
     int countLikes = likes.values.where((value) => value).length;
     bool isLiked = likes[FirebaseAuth.instance.currentUser!.uid] ?? false;
 
-    List<dynamic> imageUrls = (post.data() as Map?)?.containsKey('imageUrls') ?? false
-        ? List<dynamic>.from((post.data() as Map)['imageUrls'])
-        : [];
+    List<dynamic> imageUrls =
+        (post.data() as Map?)?.containsKey('imageUrls') ?? false
+            ? List<dynamic>.from((post.data() as Map)['imageUrls'])
+            : [];
 
     return FutureBuilder<DocumentSnapshot>(
-      future: FirebaseFirestore.instance.collection('users').doc(post['userId']).get(),
+      future: FirebaseFirestore.instance
+          .collection('users')
+          .doc(post['userId'])
+          .get(),
       builder: (context, snapshot) {
         if (!snapshot.hasData || snapshot.hasError) {
           return Card(
             child: ListTile(
               leading: CircleAvatar(),
-              title: Text('Loading...', style: TextStyle(fontWeight: FontWeight.bold)),
+              title: Text('Loading...',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           );
         }
@@ -254,7 +261,8 @@ class HomeScreen extends StatelessWidget {
                 ),
                 title: GestureDetector(
                   onTap: () => _navigateToUserProfile(context, userId),
-                  child: Text(username, style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: Text(username,
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ),
               if (imageUrls.isNotEmpty)
@@ -269,7 +277,9 @@ class HomeScreen extends StatelessWidget {
                         enableInfiniteScroll: false,
                         autoPlay: false,
                         disableCenter: true,
-                        scrollPhysics: imageUrls.length == 1 ? NeverScrollableScrollPhysics() : null,
+                        scrollPhysics: imageUrls.length == 1
+                            ? NeverScrollableScrollPhysics()
+                            : null,
                       ),
                       items: imageUrls.map((url) {
                         return Builder(
@@ -296,7 +306,8 @@ class HomeScreen extends StatelessWidget {
                           return Container(
                             width: 8.0,
                             height: 8.0,
-                            margin: EdgeInsets.symmetric(vertical: 10.0, horizontal: 2.0),
+                            margin: EdgeInsets.symmetric(
+                                vertical: 10.0, horizontal: 2.0),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: Colors.grey,
@@ -320,7 +331,9 @@ class HomeScreen extends StatelessWidget {
                   Row(
                     children: <Widget>[
                       IconButton(
-                        icon: Icon(isLiked ? Icons.favorite : Icons.favorite_border, color: isLiked ? Colors.red : null),
+                        icon: Icon(
+                            isLiked ? Icons.favorite : Icons.favorite_border,
+                            color: isLiked ? Colors.red : null),
                         onPressed: () => toggleLike(post, currentUserId),
                       ),
                       IconButton(
@@ -329,7 +342,8 @@ class HomeScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => CommentPage(postId: post.id),
+                              builder: (context) =>
+                                  CommentPage(postId: post.id),
                             ),
                           );
                         },
@@ -339,7 +353,7 @@ class HomeScreen extends StatelessWidget {
                   // Spacer pushes the bookmark icon to the right
                   Spacer(),
                   // Bookmark icon on the right
-                   BookmarkButton(post: post, currentUserId: currentUserId),
+                  BookmarkButton(post: post, currentUserId: currentUserId),
                 ],
               ),
               GestureDetector(
@@ -354,7 +368,8 @@ class HomeScreen extends StatelessWidget {
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: 16),
                   alignment: Alignment.topLeft,
-                  child: Text('Liked by $countLikes fans', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: Text('Liked by $countLikes fans',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ),
               Container(
@@ -390,7 +405,7 @@ class HomeScreen extends StatelessWidget {
 
 void toggleLike(DocumentSnapshot post, String userId) async {
   var postRef = FirebaseFirestore.instance.collection('post').doc(post.id);
-  
+
   var snapshot = await postRef.get();
   var data = snapshot.data() as Map;
   var likes = Map<String, bool>.from(data['likes'] ?? {});
@@ -407,8 +422,10 @@ void toggleLike(DocumentSnapshot post, String userId) async {
   });
 }
 
-Future<List<Map<String, dynamic>>> toggleBookmark(DocumentSnapshot post, String userId) async {
-  var bookmarkRef = FirebaseFirestore.instance.collection('bookmarks').doc(userId);
+Future<List<Map<String, dynamic>>> toggleBookmark(
+    DocumentSnapshot post, String userId) async {
+  var bookmarkRef =
+      FirebaseFirestore.instance.collection('bookmarks').doc(userId);
 
   var snapshot = await bookmarkRef.get();
   var data = snapshot.data() as Map<String, dynamic>? ?? {};
@@ -425,7 +442,8 @@ Future<List<Map<String, dynamic>>> toggleBookmark(DocumentSnapshot post, String 
     bookmarks.add(bookmark);
   }
 
-  await bookmarkRef.set({'bookmarks': bookmarks, 'timestamp': FieldValue.serverTimestamp()});
+  await bookmarkRef
+      .set({'bookmarks': bookmarks, 'timestamp': FieldValue.serverTimestamp()});
 
   return bookmarks;
 }
@@ -451,7 +469,9 @@ class _BookmarkButtonState extends State<BookmarkButton> {
   }
 
   void _checkIfBookmarked() async {
-    var bookmarkRef = FirebaseFirestore.instance.collection('bookmarks').doc(widget.currentUserId);
+    var bookmarkRef = FirebaseFirestore.instance
+        .collection('bookmarks')
+        .doc(widget.currentUserId);
     var snapshot = await bookmarkRef.get();
     if (snapshot.exists) {
       var data = snapshot.data() as Map<String, dynamic>;
@@ -476,7 +496,8 @@ class _BookmarkButtonState extends State<BookmarkButton> {
   @override
   Widget build(BuildContext context) {
     return IconButton(
-      icon: Icon(isBookmarked ? Icons.bookmark : Icons.bookmark_border, color: isBookmarked ? Colors.black : null),
+      icon: Icon(isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+          color: isBookmarked ? Colors.black : null),
       onPressed: _toggleBookmark,
     );
   }

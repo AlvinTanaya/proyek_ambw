@@ -84,7 +84,6 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
     QuerySnapshot querySnapshot = await _firestore
         .collection('marketplace')
         .where('userId', isEqualTo: userId)
-        .orderBy('timestamp', descending: true) // Order by timestamp
         .get();
     return querySnapshot.docs;
   }
@@ -530,6 +529,7 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
                                   return Center(
                                       child: Text('Error: ${snapshot.error}'));
                                 }
+
                                 if (!snapshot.hasData ||
                                     snapshot.data!.isEmpty) {
                                   return Center(

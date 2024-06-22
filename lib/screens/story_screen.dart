@@ -67,17 +67,26 @@ class _StoryScreenState extends State<StoryScreen> {
       var nextUserStories = widget.allUsersStories[nextUserId];
       var nextUserDoc = nextUserStories![0];
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => StoryScreen(
-            stories: nextUserStories,
-            username: nextUserDoc['userId'] ?? 'Unknown',
-            profilePicture: nextUserDoc['userProfile'] ?? '',
-            allUsersStories: widget.allUsersStories,
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(nextUserId)
+          .get()
+          .then((userDoc) {
+        var nextUsername = userDoc['username'] ?? 'Unknown';
+        var nextProfilePicture = userDoc['profilePicture'] ?? '';
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => StoryScreen(
+              stories: nextUserStories,
+              username: nextUsername,
+              profilePicture: nextProfilePicture,
+              allUsersStories: widget.allUsersStories,
+            ),
           ),
-        ),
-      );
+        );
+      });
     } else {
       Navigator.pushAndRemoveUntil(
         context,

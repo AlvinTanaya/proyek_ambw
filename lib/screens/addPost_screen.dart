@@ -1,15 +1,17 @@
 import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:video_player/video_player.dart';
+import 'package:video_thumbnail/video_thumbnail.dart';
+
 import 'base_screen.dart';
 import 'home_screen.dart';
-import 'package:video_thumbnail/video_thumbnail.dart';
-import 'package:path_provider/path_provider.dart';
 
 void main() {
   runApp(MaterialApp(
@@ -231,6 +233,18 @@ class _AddPostImageScreenState extends State<AddPostImageScreen> {
         'videoUrl': null,
       });
 
+      // Increment countPost field
+      DocumentReference userDocRef =
+          FirebaseFirestore.instance.collection('users').doc(user.uid);
+
+      FirebaseFirestore.instance.runTransaction((transaction) async {
+        DocumentSnapshot userDocSnapshot = await transaction.get(userDocRef);
+        if (userDocSnapshot.exists) {
+          int currentCount = userDocSnapshot['countPost'] ?? 0;
+          transaction.update(userDocRef, {'countPost': currentCount + 1});
+        }
+      });
+
       Navigator.pushReplacement(
           context, MaterialPageRoute(builder: (context) => HomeScreen()));
     } catch (e) {
@@ -274,7 +288,8 @@ class _AddPostImageScreenState extends State<AddPostImageScreen> {
                             children: _images
                                 .map((image) => Padding(
                                       padding: const EdgeInsets.all(8.0),
-                                      child: Image.file(image, fit: BoxFit.cover, height: 200),
+                                      child: Image.file(image,
+                                          fit: BoxFit.cover, height: 200),
                                     ))
                                 .toList(),
                           ),
@@ -319,7 +334,8 @@ class _AddPostVideoScreenState extends State<AddPostVideoScreen> {
   }
 
   Future<void> _pickVideo() async {
-    final pickedFile = await ImagePicker().getVideo(source: ImageSource.gallery);
+    final pickedFile =
+        await ImagePicker().getVideo(source: ImageSource.gallery);
 
     if (pickedFile != null) {
       setState(() {
@@ -355,9 +371,8 @@ class _AddPostVideoScreenState extends State<AddPostVideoScreen> {
       final thumbnailFile = File('${tempDir.path}/thumbnail.png');
       await thumbnailFile.writeAsBytes(thumbnailData);
 
-      final storageRef = firebase_storage.FirebaseStorage.instance
-          .ref()
-          .child('thumbnails/${FirebaseAuth.instance.currentUser!.uid}_${DateTime.now().millisecondsSinceEpoch}.png');
+      final storageRef = firebase_storage.FirebaseStorage.instance.ref().child(
+          'thumbnails/${FirebaseAuth.instance.currentUser!.uid}_${DateTime.now().millisecondsSinceEpoch}.png');
       await storageRef.putFile(thumbnailFile);
 
       final downloadUrl = await storageRef.getDownloadURL();
@@ -403,7 +418,7 @@ class _AddPostVideoScreenState extends State<AddPostVideoScreen> {
       final videoUrl = await snapshot.ref.getDownloadURL();
 
       final thumbnailUrl = await _generateThumbnail(_videoFile!.path);
-      
+
       await FirebaseFirestore.instance.collection('post').add({
         'videoUrl': videoUrl,
         'thumbnailUrl': thumbnailUrl,
@@ -452,7 +467,8 @@ class _AddPostVideoScreenState extends State<AddPostVideoScreen> {
                   child: Center(
                     child: _videoFile == null
                         ? Icon(Icons.add_a_photo, size: 50, color: Colors.grey)
-                        : _controller != null && _controller!.value.isInitialized
+                        : _controller != null &&
+                                _controller!.value.isInitialized
                             ? AspectRatio(
                                 aspectRatio: _controller!.value.aspectRatio,
                                 child: VideoPlayer(_controller!),
