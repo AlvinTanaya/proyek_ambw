@@ -473,7 +473,8 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
                                     crossAxisCount: 3,
                                     crossAxisSpacing: 0,
                                     mainAxisSpacing: 0,
-                                    childAspectRatio: 1,
+                                    childAspectRatio:
+                                        1, // Set childAspectRatio to 1 for square thumbnails
                                   ),
                                   itemCount: posts.length,
                                   itemBuilder: (context, index) {
@@ -497,30 +498,40 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
                                           side: BorderSide(
                                               color: Colors.black, width: 1),
                                         ),
-                                        child: post['imageUrls'] != null &&
-                                                post['imageUrls'].isNotEmpty
-                                            ? Image.network(
-                                                post['imageUrls'][0],
-                                                fit: BoxFit.cover,
-                                              )
-                                            : post['thumbnailUrl'] != null
-                                                ? Stack(
-                                                    children: [
-                                                      Image.network(
-                                                        post['thumbnailUrl'],
-                                                        fit: BoxFit.cover,
-                                                      ),
-                                                      Center(
-                                                        child: Icon(
-                                                          Icons
-                                                              .play_circle_outline,
-                                                          color: Colors.white,
-                                                          size: 50,
-                                                        ),
-                                                      ),
-                                                    ],
+                                        child: AspectRatio(
+                                          aspectRatio:
+                                              1, // Ensure aspect ratio is 1:1
+                                          child: Container(
+                                            color: Colors.grey.shade200,
+                                            child: post['imageUrls'] != null &&
+                                                    post['imageUrls'].isNotEmpty
+                                                ? Image.network(
+                                                    post['imageUrls'][0],
+                                                    fit: BoxFit.cover,
                                                   )
-                                                : Container(),
+                                                : post['thumbnailUrl'] != null
+                                                    ? Stack(
+                                                        fit: StackFit.expand,
+                                                        children: [
+                                                          Image.network(
+                                                            post[
+                                                                'thumbnailUrl'],
+                                                            fit: BoxFit.cover,
+                                                          ),
+                                                          Center(
+                                                            child: Icon(
+                                                              Icons
+                                                                  .play_circle_outline,
+                                                              color:
+                                                                  Colors.white,
+                                                              size: 50,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      )
+                                                    : Container(),
+                                          ),
+                                        ),
                                       ),
                                     );
                                   },

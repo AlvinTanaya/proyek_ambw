@@ -199,7 +199,25 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
   }
 
   void _saveProfile(BuildContext context) async {
+    // Validate input fields
+    if (_usernameController.text.isEmpty || 
+        _fullNameController.text.isEmpty ||
+        _emailController.text.isEmpty ||
+        _phoneNumberController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Please fill in all required fields.'),
+      ));
+      return;
+    }
+
     try {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Center(child: CircularProgressIndicator()),
+      );
+
       // Get the values from the text fields
       String username = _usernameController.text.trim();
       String fullName = _fullNameController.text.trim();
@@ -216,11 +234,20 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
         'biodata': biodata,
       });
 
+      // Hide loading indicator
+      Navigator.pop(context);
+
       // Show a success message
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Profile updated successfully!'),
       ));
+
+      // Navigate back to the profile user screen
+      Navigator.pop(context);
     } catch (error) {
+      // Hide loading indicator
+      Navigator.pop(context);
+
       // Show an error message if any
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Failed to update profile: $error'),
