@@ -172,12 +172,12 @@ class _StoryScreenState extends State<StoryScreen> {
           setState(() {
             widget.stories.remove(story);
             if (_currentIndex >= widget.stories.length) {
-              _currentIndex = widget.stories.length - 1; // Adjust current index if necessary
+              _currentIndex = widget.stories.length - 1; 
             }
             if (widget.stories.isEmpty) {
-              Navigator.pop(context); // If no stories left, exit the screen
+              Navigator.pop(context);
             } else {
-              _initializeStory(widget.stories[_currentIndex]); // Initialize the next story
+              _initializeStory(widget.stories[_currentIndex]);
             }
           });
         }

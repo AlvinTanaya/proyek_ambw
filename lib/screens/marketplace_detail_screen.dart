@@ -44,16 +44,14 @@ class MarketPlaceDetailScreen extends StatelessWidget {
 
   void _deleteItem(BuildContext context) async {
     try {
-      // Get the userId of the item to delete
+    
       String userId = item['userId'];
 
-      // Delete the item from the marketplace collection
       await FirebaseFirestore.instance
           .collection('marketplace')
           .doc(item.id)
           .delete();
 
-      // Decrement the countMarketplace field in the user's document
       DocumentReference userDocRef =
           FirebaseFirestore.instance.collection('users').doc(userId);
 

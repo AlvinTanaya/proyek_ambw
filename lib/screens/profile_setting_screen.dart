@@ -40,7 +40,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
     if (snapshot.exists) {
       Map<String, dynamic>? data = snapshot.data() as Map<String, dynamic>?;
       if (data != null) {
-        // Fill the text controllers with the fetched data
+       
         _usernameController.text = data['username'] ?? '';
         _fullNameController.text = data['fullName'] ?? '';
         _emailController.text = data['email'] ?? '';
@@ -199,7 +199,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
   }
 
   void _saveProfile(BuildContext context) async {
-    // Validate input fields
+ 
     if (_usernameController.text.isEmpty || 
         _fullNameController.text.isEmpty ||
         _emailController.text.isEmpty ||
@@ -211,21 +211,20 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
     }
 
     try {
-      // Show loading indicator
+    
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (context) => Center(child: CircularProgressIndicator()),
       );
 
-      // Get the values from the text fields
       String username = _usernameController.text.trim();
       String fullName = _fullNameController.text.trim();
       String email = _emailController.text.trim();
       String phoneNumber = _phoneNumberController.text.trim();
       String biodata = _bioController.text.trim();
 
-      // Update Firestore
+
       await _firestore.collection('users').doc(_currentUser.uid).update({
         'username': username,
         'fullName': fullName,
@@ -234,21 +233,18 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
         'biodata': biodata,
       });
 
-      // Hide loading indicator
       Navigator.pop(context);
 
-      // Show a success message
+  
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Profile updated successfully!'),
       ));
 
-      // Navigate back to the profile user screen
       Navigator.pop(context);
     } catch (error) {
-      // Hide loading indicator
+ 
       Navigator.pop(context);
 
-      // Show an error message if any
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Failed to update profile: $error'),
       ));

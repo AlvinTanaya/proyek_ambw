@@ -77,7 +77,7 @@ class _MarketPlaceScreenState extends State<MarketPlaceScreen> {
               snapshot.docs.map((doc) => doc['location']).toSet().toList(),
         );
 
-    locations.insert(0, 'All'); // Add 'All' to the locations list
+    locations.insert(0, 'All');
 
     showDialog(
       context: context,
@@ -396,7 +396,7 @@ class _MarketPlaceScreenState extends State<MarketPlaceScreen> {
         ],
       ),
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 60.0), // Adjust the value as needed
+        padding: const EdgeInsets.only(bottom: 60.0),
         child: FloatingActionButton(
           onPressed: () {
             Navigator.push(

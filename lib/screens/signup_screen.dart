@@ -155,7 +155,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               _buildBirthDateField(),
               const SizedBox(height: 20),
               Container(
-                width: double.infinity, // Make the button as wide as the form fields
+                width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _register,
                   style: ElevatedButton.styleFrom(

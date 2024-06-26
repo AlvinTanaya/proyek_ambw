@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:proyek_ambw/reusable_widgets/video_widget.dart';
-import 'likers_page.dart'; // Import LikersPage
+import 'likers_page.dart';
 import 'comment_page.dart';
 
 class PostDetailScreen extends StatefulWidget {
@@ -99,7 +99,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     );
 
     if (confirmed) {
-      // Decrement countPost field in users collection
+     
       DocumentReference userDocRef = FirebaseFirestore.instance
           .collection('users')
           .doc(postData['userId']);
@@ -112,12 +112,12 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         }
       });
 
-      // Delete the post
+   
       await FirebaseFirestore.instance
           .collection('post')
           .doc(widget.post.id)
           .delete();
-      Navigator.pop(context); // Return to the previous screen
+      Navigator.pop(context);
     }
   }
 

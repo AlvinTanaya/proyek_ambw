@@ -98,7 +98,7 @@ class _ChooseStoryUploadTypeScreenState
                           decoration: BoxDecoration(
                             color: const Color.fromARGB(255, 133, 133, 133)
                                 .withOpacity(
-                                    0.3), // Adjusted opacity to match the image overlay
+                                    0.3),
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),

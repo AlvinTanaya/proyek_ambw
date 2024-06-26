@@ -26,7 +26,7 @@ class LikersPage extends StatelessWidget {
 
           Map<String, dynamic> data = snapshot.data!.data() as Map<String, dynamic>;
           Map likes = data['likes'] ?? {};
-          List<String> userIds = likes.keys.cast<String>().toList();  // Explicit casting to List<String>
+          List<String> userIds = likes.keys.cast<String>().toList();  
 
           if (userIds.isEmpty) {
             return Center(child: Text("No likes yet"));

@@ -114,7 +114,7 @@ class _ChooseUploadTypeScreenState extends State<ChooseUploadTypeScreen> {
                           decoration: BoxDecoration(
                             color: const Color.fromARGB(255, 133, 133, 133)
                                 .withOpacity(
-                                    0.3), // Adjusted opacity to match the image overlay
+                                    0.3),
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
@@ -231,7 +231,7 @@ class _AddPostImageScreenState extends State<AddPostImageScreen> {
         'videoUrl': null,
       });
 
-      // Increment countPost field
+
       DocumentReference userDocRef =
           FirebaseFirestore.instance.collection('users').doc(user.uid);
 
@@ -366,7 +366,7 @@ class _AddPostVideoScreenState extends State<AddPostVideoScreen> {
         imageFormat: ImageFormat.PNG,
         maxHeight: 600,
         quality: 100,
-        timeMs: 2000, // Time in milliseconds (2 seconds)
+        timeMs: 2000,
       );
 
       if (thumbnailData == null) return null;
@@ -432,7 +432,7 @@ class _AddPostVideoScreenState extends State<AddPostVideoScreen> {
         'userId': user.uid,
       });
 
-      // Increment countPost field
+
       DocumentReference userDocRef =
           FirebaseFirestore.instance.collection('users').doc(user.uid);
 

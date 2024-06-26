@@ -105,9 +105,9 @@ class _OtherUserScreenState extends State<OtherUserScreen> {
         ),
       );
     } else {
-      // Handle case where current user is null (not logged in)
+     
       return Scaffold(
-          // Widget for users who are not logged in
+        
           );
     }
   }
@@ -164,7 +164,7 @@ class FirestoreService {
 
   Stream<List<UserProfile>> getUserProfiles(String currentUserId) {
     return _db.collection('users').snapshots().map((snapshot) => snapshot.docs
-        .where((doc) => doc.id != currentUserId) // Exclude current user
+        .where((doc) => doc.id != currentUserId)  
         .map((doc) => UserProfile.fromFirestore(doc.id, doc.data()))
         .toList());
   }

@@ -91,7 +91,7 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
     QuerySnapshot querySnapshot = await _firestore
         .collection('post')
         .where('userId', isEqualTo: userId)
-        .orderBy('timestamp', descending: true) // Order by timestamp
+        .orderBy('timestamp', descending: true) 
         .get();
     return querySnapshot.docs;
   }
@@ -100,7 +100,7 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
     QuerySnapshot querySnapshot = await _firestore
         .collection('post')
         .where('userId', isEqualTo: userId)
-        .orderBy('timestamp', descending: true) // Order by timestamp
+        .orderBy('timestamp', descending: true) 
         .get();
 
     int imageCount = 0;
@@ -474,7 +474,7 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
                                     crossAxisSpacing: 0,
                                     mainAxisSpacing: 0,
                                     childAspectRatio:
-                                        1, // Set childAspectRatio to 1 for square thumbnails
+                                        1,
                                   ),
                                   itemCount: posts.length,
                                   itemBuilder: (context, index) {
@@ -500,7 +500,7 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
                                         ),
                                         child: AspectRatio(
                                           aspectRatio:
-                                              1, // Ensure aspect ratio is 1:1
+                                              1,  
                                           child: Container(
                                             color: Colors.grey.shade200,
                                             child: post['imageUrls'] != null &&

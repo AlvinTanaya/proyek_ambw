@@ -57,7 +57,6 @@ class _CommentPageState extends State<CommentPage> {
                   return Center(child: Text("There are no comments yet"));
                 }
 
-                // Manual sorting can be performed here if necessary
                 documents.sort((a, b) => b['timestamp'].compareTo(a['timestamp']));
 
                 return ListView(
@@ -93,7 +92,6 @@ class _CommentPageState extends State<CommentPage> {
   }
 
   Widget _buildCommentTile(DocumentSnapshot comment) {
-    // User data fetched each time to ensure it is up to date
     return FutureBuilder<DocumentSnapshot>(
       future: FirebaseFirestore.instance.collection('users').doc(comment['userId']).get(),
       builder: (context, snapshot) {

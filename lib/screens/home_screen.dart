@@ -6,7 +6,7 @@ import 'package:proyek_ambw/reusable_widgets/video_widget.dart';
 import 'addStory_screen.dart';
 import 'comment_page.dart';
 import 'likers_page.dart';
-import 'other_user_profile_screen.dart'; // Import the OtherUserProfileScreen
+import 'other_user_profile_screen.dart';
 import 'story_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -59,7 +59,7 @@ class HomeScreen extends StatelessWidget {
 
                 List<dynamic> linkedUserIds = snapshot.data!['linked'] ?? [];
                 linkedUserIds.add(
-                    currentUserId); // Add the current user's ID to show their own stories
+                    currentUserId);
 
                 if (linkedUserIds.isEmpty) {
                   return Center(child: Text('No linked users found'));
@@ -324,7 +324,6 @@ class HomeScreen extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: <Widget>[
-                  // Group for like and comment icons on the left
                   Row(
                     children: <Widget>[
                       IconButton(
@@ -347,9 +346,10 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  // Spacer pushes the bookmark icon to the right
+                
                   Spacer(),
-                  // Bookmark icon on the right
+                 
+
                   BookmarkButton(post: post, currentUserId: currentUserId),
                 ],
               ),
